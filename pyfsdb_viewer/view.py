@@ -6,7 +6,7 @@ import logging
 import sys
 
 from textual.app import App, ComposeResult
-from textual.widgets import Button, DataTable, Static, Header, Label
+from textual.widgets import Button, DataTable, Static, Header, Label, Footer
 from textual.containers import Container, ScrollableContainer
 import pyfsdb
 
@@ -35,7 +35,7 @@ class FsdbView(App):
 
     CSS_PATH="pyfsdb_viewer.css"
     BINDINGS=[("q", "exit", "Quit"),
-              ("r", "remove_row", "Removes the current row")]
+              ("r", "remove_row", "Remove row")]
 
     def __init__(self, input_file, *args, **kwargs):
         self.input_file = input_file
@@ -46,6 +46,9 @@ class FsdbView(App):
             d.write(string)
 
     def compose(self) -> ComposeResult:
+        self.header = Header()
+        yield self.header
+        
         self.ourtitle = Label(self.input_file.name)
         yield self.ourtitle
 
@@ -54,6 +57,9 @@ class FsdbView(App):
 
         self.button = Button("Close", id="close")
         yield self.button
+
+        self.footer = Footer()
+        yield self.footer
 
     def on_mount(self) -> None:
         self.fsh = pyfsdb.Fsdb(file_handle=self.input_file)
