@@ -49,6 +49,7 @@ class FsdbView(App):
         self.fsh = pyfsdb.Fsdb(file_handle=self.input_file)
         self.t.add_columns(*self.fsh.column_names)
         self.t.add_rows(self.fsh.get_all())
+        self.t.focus()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         self.exit(event.button.id)
