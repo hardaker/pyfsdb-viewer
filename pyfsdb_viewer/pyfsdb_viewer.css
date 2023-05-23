@@ -1,4 +1,12 @@
 #fsdbtable {
-    height: 85%;
+    /* height: 85%; */
     background: #014201;
+}
+
+#fsdbcontainer {
+    height: 90%;
+}
+
+#ourtitle {
+    background: #880000;
 }

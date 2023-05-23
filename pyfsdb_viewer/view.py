@@ -51,14 +51,12 @@ class FsdbView(App):
         self.header = Header()
         yield self.header
         
-        self.ourtitle = Label(self.input_file.name)
+        self.ourtitle = Label(self.input_file.name, id="ourtitle")
         yield self.ourtitle
 
         self.t = DataTable(fixed_rows=1, id="fsdbtable")
-        yield self.t
-
-        self.empty_container = ScrollableContainer()
-        yield self.empty_container
+        self.t_container = ScrollableContainer(self.t, id="fsdbcontainer")
+        yield self.t_container
 
         self.button = Button("Close", id="close")
         yield self.button
@@ -88,9 +86,15 @@ class FsdbView(App):
     def action_show_history(self):
         "show's the comment history"
         if self.added_comments:
+            self.empty_container.remove()
+            self.added_comments = False
             return
-        self.added_comments = True
         
+        self.added_comments = True
+
+        self.empty_container = Container()
+        self.mount(self.empty_container, after = self.t_container)
+
         for comment in self.fsh.comments:
             if comment.startswith("#   |"):
                 commentLabel = Label(comment.strip())
