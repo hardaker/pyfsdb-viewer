@@ -35,15 +35,17 @@ class FsdbView(App):
 
     CSS_PATH="pyfsdb_viewer.css"
     BINDINGS=[("q", "exit", "Quit"),
-              ("r", "remove_row", "Remove row")]
+              ("r", "remove_row", "Remove row"),
+              ("h", "show_history", "Show history")]
 
     def __init__(self, input_file, *args, **kwargs):
         self.input_file = input_file
+        self.added_comments = False
         super().__init__(*args, **kwargs)
 
-    def debug(self, string):
+    def debug(self, obj):
         with open("/tmp/debug.txt", "w") as d:
-            d.write(string)
+            d.write(str(obj) + "\n")
 
     def compose(self) -> ComposeResult:
         self.header = Header()
@@ -54,6 +56,9 @@ class FsdbView(App):
 
         self.t = DataTable(fixed_rows=1, id="fsdbtable")
         yield self.t
+
+        self.empty_container = ScrollableContainer()
+        yield self.empty_container
 
         self.button = Button("Close", id="close")
         yield self.button
@@ -79,6 +84,17 @@ class FsdbView(App):
         row_id, _ = self.t.coordinate_to_cell_key(self.t.cursor_coordinate)
 
         self.t.remove_row(row_id)
+
+    def action_show_history(self):
+        "show's the comment history"
+        if self.added_comments:
+            return
+        self.added_comments = True
+        
+        for comment in self.fsh.comments:
+            if comment.startswith("#   |"):
+                commentLabel = Label(comment.strip())
+                self.empty_container.mount(commentLabel)
         
 
 def main():
