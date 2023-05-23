@@ -27,7 +27,7 @@ setuptools.setup(
     test_suite="nose.collector",
     tests_require=["nose"],
     install_requires=[
-        "pyfsdb",
+        "pyfsdb>=2.1.5",
         "textual>=0.26.0",
     ],
     package_data = {
