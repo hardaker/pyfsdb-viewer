@@ -55,8 +55,7 @@ class FsdbView(App):
         yield self.ourtitle
 
         self.t = DataTable(fixed_rows=1, id="fsdbtable")
-        self.t_container = ScrollableContainer(self.t, id="fsdbcontainer")
-        yield self.t_container
+        yield self.t
 
         self.button = Button("Close", id="close")
         yield self.button
@@ -93,7 +92,7 @@ class FsdbView(App):
         self.added_comments = True
 
         self.history_log = TextLog(id="history")
-        self.mount(self.history_log, after = self.t_container)
+        self.mount(self.history_log, after = self.t)
 
         for comment in self.fsh.comments:
             if comment.startswith("#   |"):
