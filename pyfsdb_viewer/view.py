@@ -31,6 +31,11 @@ def parse_args():
 
 
 class FsdbView(App):
+    "FSDB File Viewer"
+
+    CSS_PATH="pyfsdb_viewer.css"
+    BINDINGS=[("q", "exit", "Quit")]
+
     def __init__(self, input_file, *args, **kwargs):
         self.input_file = input_file
         super().__init__(*args, **kwargs)
@@ -54,10 +59,12 @@ class FsdbView(App):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         self.exit(event.button.id)
 
+    def action_exit(self):
+        self.exit()
 
 def main():
     args = parse_args()
-    app = FsdbView(args.input_file, css_path="pyfsdb_viewer.css")
+    app = FsdbView(args.input_file)
     app.run()
 
 
