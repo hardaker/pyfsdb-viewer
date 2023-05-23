@@ -6,7 +6,7 @@ import logging
 import sys
 
 from textual.app import App, ComposeResult
-from textual.widgets import Button, DataTable, Static, Header, Label, Footer
+from textual.widgets import Button, DataTable, Static, Header, Label, Footer, TextLog
 from textual.containers import Container, ScrollableContainer
 import pyfsdb
 
@@ -36,7 +36,7 @@ class FsdbView(App):
     CSS_PATH="pyfsdb_viewer.css"
     BINDINGS=[("q", "exit", "Quit"),
               ("r", "remove_row", "Remove row"),
-              ("h", "show_history", "Show history")]
+              ("h", "show_history", "command History")]
 
     def __init__(self, input_file, *args, **kwargs):
         self.input_file = input_file
@@ -86,19 +86,18 @@ class FsdbView(App):
     def action_show_history(self):
         "show's the comment history"
         if self.added_comments:
-            self.empty_container.remove()
+            self.history_log.remove()
             self.added_comments = False
             return
         
         self.added_comments = True
 
-        self.empty_container = Container()
-        self.mount(self.empty_container, after = self.t_container)
+        self.history_log = TextLog(id="history")
+        self.mount(self.history_log, after = self.t_container)
 
         for comment in self.fsh.comments:
             if comment.startswith("#   |"):
-                commentLabel = Label(comment.strip())
-                self.empty_container.mount(commentLabel)
+                self.history_log.write(comment.strip())
         
 
 def main():

@@ -4,7 +4,11 @@
 }
 
 #fsdbcontainer {
-    height: 90%;
+    height: 85%;
+}
+
+#history {
+    height: 10%;
 }
 
 #ourtitle {
