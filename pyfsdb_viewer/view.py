@@ -6,7 +6,7 @@ import logging
 import sys
 
 from textual.app import App, ComposeResult
-from textual.widgets import Button, DataTable
+from textual.widgets import Button, DataTable, Label
 import pyfsdb
 
 
@@ -36,6 +36,9 @@ class FsdbView(App):
         super().__init__(*args, **kwargs)
 
     def compose(self) -> ComposeResult:
+        self.title = Label(self.input_file.name)
+        yield self.title
+
         self.t = DataTable(fixed_rows=1, id="fsdbtable")
         yield self.t
 
