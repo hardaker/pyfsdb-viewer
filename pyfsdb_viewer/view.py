@@ -6,7 +6,8 @@ import logging
 import sys
 
 from textual.app import App, ComposeResult
-from textual.widgets import Button, DataTable, Label
+from textual.widgets import Button, DataTable, Static, Header, Label
+from textual.containers import Container, ScrollableContainer
 import pyfsdb
 
 
@@ -29,20 +30,24 @@ def parse_args():
                         format="%(levelname)-10s:\t%(message)s")
     return args
 
-
 class FsdbView(App):
     "FSDB File Viewer"
 
     CSS_PATH="pyfsdb_viewer.css"
-    BINDINGS=[("q", "exit", "Quit")]
+    BINDINGS=[("q", "exit", "Quit"),
+              ("r", "remove_row", "Removes the current row")]
 
     def __init__(self, input_file, *args, **kwargs):
         self.input_file = input_file
         super().__init__(*args, **kwargs)
 
+    def debug(self, string):
+        with open("/tmp/debug.txt", "w") as d:
+            d.write(string)
+
     def compose(self) -> ComposeResult:
-        self.title = Label(self.input_file.name)
-        yield self.title
+        self.ourtitle = Label(self.input_file.name)
+        yield self.ourtitle
 
         self.t = DataTable(fixed_rows=1, id="fsdbtable")
         yield self.t
@@ -53,7 +58,9 @@ class FsdbView(App):
     def on_mount(self) -> None:
         self.fsh = pyfsdb.Fsdb(file_handle=self.input_file)
         self.t.add_columns(*self.fsh.column_names)
-        self.t.add_rows(self.fsh.get_all())
+
+        self.rows = self.fsh.get_all()
+        self.t.add_rows(self.rows)
         self.t.focus()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -61,6 +68,12 @@ class FsdbView(App):
 
     def action_exit(self):
         self.exit()
+
+    def action_remove_row(self):
+        row_id, _ = self.t.coordinate_to_cell_key(self.t.cursor_coordinate)
+
+        self.t.remove_row(row_id)
+        
 
 def main():
     args = parse_args()
