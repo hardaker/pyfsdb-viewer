@@ -8,6 +8,7 @@ import re
 import subprocess
 import tempfile
 from subprocess import Popen, PIPE, STDOUT
+import shlex
 
 from textual.app import App, ComposeResult
 from textual.widgets import Button, DataTable, Static, Header, Label, Footer, TextLog, Input
@@ -111,7 +112,7 @@ class FsdbView(App):
     def run_pipe(self, command="dbcolcreate foo"):
         "Runs a new command on the data, and re-displays the output file"
         
-        command_parts = command.split(" ")
+        command_parts = shlex.split(command)
         p = Popen(command_parts, stdout=PIPE, stdin=PIPE, stderr=PIPE)
         
         # run the specified command
