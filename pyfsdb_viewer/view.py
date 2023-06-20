@@ -4,6 +4,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
 from logging import debug, info, warning, error, critical
 import logging
 import sys
+import re
 
 from textual.app import App, ComposeResult
 from textual.widgets import Button, DataTable, Static, Header, Label, Footer, TextLog
@@ -49,19 +50,16 @@ class FsdbView(App):
 
     def compose(self) -> ComposeResult:
         self.header = Header()
-        yield self.header
         
         self.ourtitle = Label(self.input_file.name, id="ourtitle")
-        yield self.ourtitle
 
         self.t = DataTable(fixed_rows=1, id="fsdbtable")
-        yield self.t
-
-        self.button = Button("Close", id="close")
-        yield self.button
 
         self.footer = Footer()
-        yield self.footer
+
+        self.container = Container(self.header, self.ourtitle,
+                                   self.t, self.footer, id="mainpanel")
+        yield self.container
 
     def on_mount(self) -> None:
         self.fsh = pyfsdb.Fsdb(file_handle=self.input_file)
@@ -94,8 +92,9 @@ class FsdbView(App):
         self.history_log = TextLog(id="history")
         self.mount(self.history_log, after = self.t)
 
+        is_command = re.compile("# +\|")
         for comment in self.fsh.comments:
-            if comment.startswith("#   |"):
+            if is_command.match(comment):
                 self.history_log.write(comment.strip())
         
 

@@ -1,16 +1,26 @@
 #fsdbtable {
-    height: 85%;
+    height: 100%;
     background: #014201;
 }
 
 #fsdbcontainer {
-    height: 85%;
+    height: 100%;
+}
+
+#mainpanel {
+    height: 100%;
 }
 
 #history {
-    height: 10%;
+    height: 4;
+    dock: bottom;
 }
 
 #ourtitle {
+    dock: top;
     background: #880000;
+}
+
+#ourfooter {
+    dock: top;
 }
