@@ -93,10 +93,15 @@ class FsdbView(App):
         self.mount(self.history_log, after = self.t)
 
         is_command = re.compile("# +\|")
+        count = 0
         for comment in self.fsh.comments:
             if is_command.match(comment):
+                count += 1
                 self.history_log.write(comment.strip())
-        
+
+        # needs + 1 (maybe because of footer?)
+        self.history_log.styles.height = count + 1
+
 
 def main():
     args = parse_args()
