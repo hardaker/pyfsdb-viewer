@@ -21,9 +21,7 @@ def parse_args():
     parser.add_argument("--log-level", "--ll", default="info",
                         help="Define the logging verbosity level (debug, info, warning, error, fotal, critical).")
 
-    parser.add_argument("input_file", type=FileType('r'),
-                        nargs='?', default=sys.stdin,
-                        help="")
+    parser.add_argument("input_file", type=FileType('r'), help="The file to view")
 
     args = parser.parse_args()
     log_level = args.log_level.upper()
