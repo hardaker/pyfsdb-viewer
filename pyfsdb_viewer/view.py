@@ -5,6 +5,9 @@ from logging import debug, info, warning, error, critical
 import logging
 import sys
 import re
+import subprocess
+import tempfile
+from subprocess import Popen, PIPE, STDOUT
 
 from textual.app import App, ComposeResult
 from textual.widgets import Button, DataTable, Static, Header, Label, Footer, TextLog
@@ -21,7 +24,7 @@ def parse_args():
     parser.add_argument("--log-level", "--ll", default="info",
                         help="Define the logging verbosity level (debug, info, warning, error, fotal, critical).")
 
-    parser.add_argument("input_file", type=FileType('r'), help="The file to view")
+    parser.add_argument("input_file", help="The file to view")
 
     args = parser.parse_args()
     log_level = args.log_level.upper()
@@ -35,10 +38,11 @@ class FsdbView(App):
     CSS_PATH="pyfsdb_viewer.css"
     BINDINGS=[("q", "exit", "Quit"),
               ("r", "remove_row", "Remove row"),
-              ("h", "show_history", "command History")]
+              ("h", "show_history", "command History"),
+              ("p", "pipe", "add command")]
 
     def __init__(self, input_file, *args, **kwargs):
-        self.input_file = input_file
+        self.input_file = open(input_file, "r")
         self.added_comments = False
         super().__init__(*args, **kwargs)
 
@@ -51,21 +55,23 @@ class FsdbView(App):
         
         self.ourtitle = Label(self.input_file.name, id="ourtitle")
 
-        self.t = DataTable(fixed_rows=1, id="fsdbtable")
+        self.data_table = DataTable(fixed_rows=1, id="fsdbtable")
 
         self.footer = Footer()
 
         self.container = Container(self.header, self.ourtitle,
-                                   self.t, self.footer, id="mainpanel")
+                                   self.data_table, self.footer, id="mainpanel")
         yield self.container
 
-    def on_mount(self) -> None:
+    def load_data(self) -> None:
         self.fsh = pyfsdb.Fsdb(file_handle=self.input_file)
-        self.t.add_columns(*self.fsh.column_names)
-
+        self.data_table.add_columns(*self.fsh.column_names)
         self.rows = self.fsh.get_all()
-        self.t.add_rows(self.rows)
-        self.t.focus()
+        self.data_table.add_rows(self.rows)
+
+    def on_mount(self) -> None:
+        self.load_data()
+        self.data_table.focus()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         self.exit(event.button.id)
@@ -74,9 +80,24 @@ class FsdbView(App):
         self.exit()
 
     def action_remove_row(self):
-        row_id, _ = self.t.coordinate_to_cell_key(self.t.cursor_coordinate)
+        row_id, _ = self.data_table.coordinate_to_cell_key(self.data_table.cursor_coordinate)
 
-        self.t.remove_row(row_id)
+        self.data_table.remove_row(row_id)
+
+    def action_pipe(self, command="dbcolcreate foo"):
+        "Runs a new command on the data, and re-displays the output file"
+        
+        command_parts = command.split(" ")
+        p = Popen(command_parts, stdout=PIPE, stdin=PIPE, stderr=PIPE)
+        
+        input_file = open(self.input_file.name, "r").read().encode()
+        output_data = p.communicate(input=input_file)
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            self.debug(tmp.name)
+            tmp.write(output_data[0])
+            self.input_file = open(tmp.name, "r")
+        self.data_table.clear(columns=True)
+        self.load_data()
 
     def action_show_history(self):
         "show's the comment history"
@@ -88,7 +109,7 @@ class FsdbView(App):
         self.added_comments = True
 
         self.history_log = TextLog(id="history")
-        self.mount(self.history_log, after = self.t)
+        self.mount(self.history_log, after = self.data_table)
 
         is_command = re.compile("# +\|")
         count = 0
