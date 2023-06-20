@@ -40,6 +40,7 @@ class FsdbView(App):
     BINDINGS=[("q", "exit", "Quit"),
               ("r", "remove_row", "Remove row"),
               ("h", "show_history", "command History"),
+              ("n", "add_column", "New column"),
               ("p", "pipe", "add command")]
 
     def __init__(self, input_file, *args, **kwargs):
@@ -84,6 +85,25 @@ class FsdbView(App):
         row_id, _ = self.data_table.coordinate_to_cell_key(self.data_table.cursor_coordinate)
 
         self.data_table.remove_row(row_id)
+
+    def action_add_column(self):
+        "add a new column to the data"
+        class ColumnInput(Input):
+            def __init__(self, base_parent, *args, **kwargs):
+                self.base_parent = base_parent
+                super().__init__(*args, **kwargs)
+
+            def action_submit(self):
+                command = self.value
+                self.base_parent.run_pipe("dbcolcreate " + self.value)
+                self.remove()
+
+
+        self.column_input = ColumnInput(self, id="command_input")
+        if not self.added_comments:
+            self.action_show_history()
+        self.mount(self.column_input, after = self.history_log)
+        self.column_input.focus()
 
     def action_pipe(self):
         "prompt for a command to run"
