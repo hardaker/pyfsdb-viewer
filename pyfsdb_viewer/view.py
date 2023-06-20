@@ -10,7 +10,7 @@ import tempfile
 from subprocess import Popen, PIPE, STDOUT
 
 from textual.app import App, ComposeResult
-from textual.widgets import Button, DataTable, Static, Header, Label, Footer, TextLog
+from textual.widgets import Button, DataTable, Static, Header, Label, Footer, TextLog, Input
 from textual.containers import Container, ScrollableContainer
 import pyfsdb
 
@@ -84,12 +84,21 @@ class FsdbView(App):
 
         self.data_table.remove_row(row_id)
 
-    def action_pipe(self, command="dbcolcreate foo"):
+    def action_pipe(self):
+        "prompt for a command to run"
+        self.command_input = Input(id="command_input")
+        if not self.added_comments:
+            self.action_show_history()
+        self.mount(self.command_input, after = self.history_log)
+        self.command_input.focus()
+
+    def run_pipe(self, command="dbcolcreate foo"):
         "Runs a new command on the data, and re-displays the output file"
         
         command_parts = command.split(" ")
         p = Popen(command_parts, stdout=PIPE, stdin=PIPE, stderr=PIPE)
         
+        # run the specified command
         input_file = open(self.input_file.name, "r").read().encode()
         output_data = p.communicate(input=input_file)
         with tempfile.NamedTemporaryFile(delete=False) as tmp:

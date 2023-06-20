@@ -16,6 +16,11 @@
     dock: bottom;
 }
 
+#command_input {
+    height: 1;
+    dock: bottom;
+}
+
 #ourtitle {
     dock: top;
     background: #880000;
