@@ -86,11 +86,27 @@ class FsdbView(App):
 
     def action_pipe(self):
         "prompt for a command to run"
-        self.command_input = Input(id="command_input")
+
+        class CommandInput(Input):
+            def __init__(self, base_parent, *args, **kwargs):
+                self.base_parent = base_parent
+                super().__init__(*args, **kwargs)
+
+            def action_submit(self):
+                command = self.value
+                self.base_parent.run_pipe(self.value)
+                self.remove()
+
+        self.command_input = CommandInput(self, id="command_input")
+
+        # show the existing history and mount it afterward
         if not self.added_comments:
             self.action_show_history()
         self.mount(self.command_input, after = self.history_log)
+
+        # focus it
         self.command_input.focus()
+
 
     def run_pipe(self, command="dbcolcreate foo"):
         "Runs a new command on the data, and re-displays the output file"
@@ -107,13 +123,15 @@ class FsdbView(App):
             self.input_file = open(tmp.name, "r")
         self.data_table.clear(columns=True)
         self.load_data()
+        self.action_show_history(force=True)
 
-    def action_show_history(self):
+    def action_show_history(self, force=False):
         "show's the comment history"
         if self.added_comments:
             self.history_log.remove()
             self.added_comments = False
-            return
+            if not force:
+                return
         
         self.added_comments = True
 
