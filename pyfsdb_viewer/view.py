@@ -86,6 +86,19 @@ class FsdbView(App):
 
         self.data_table.remove_row(row_id)
 
+    def mount_cmd_input_and_focus(self, widget, show_history=True):
+        "binds a standard input box and mounts after history"
+
+        # show the history to date if appropriate
+        if show_history and not self.added_comments:
+            self.action_show_history()
+
+        # show the new widget after the history
+        self.mount(widget, after = self.history_log)
+
+        # and focus the keyboard toward it
+        widget.focus()
+
     def action_add_column(self):
         "add a new column to the data"
         class ColumnInput(Input):
@@ -100,10 +113,7 @@ class FsdbView(App):
 
 
         self.column_input = ColumnInput(self, id="command_input")
-        if not self.added_comments:
-            self.action_show_history()
-        self.mount(self.column_input, after = self.history_log)
-        self.column_input.focus()
+        self.mount_cmd_input_and_focus(self.column_input)
 
     def action_pipe(self):
         "prompt for a command to run"
@@ -119,15 +129,7 @@ class FsdbView(App):
                 self.remove()
 
         self.command_input = CommandInput(self, id="command_input")
-
-        # show the existing history and mount it afterward
-        if not self.added_comments:
-            self.action_show_history()
-        self.mount(self.command_input, after = self.history_log)
-
-        # focus it
-        self.command_input.focus()
-
+        self.mount_cmd_input_and_focus(self.command_input)
 
     def run_pipe(self, command="dbcolcreate foo"):
         "Runs a new command on the data, and re-displays the output file"
