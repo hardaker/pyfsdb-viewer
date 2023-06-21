@@ -13,7 +13,7 @@ import shlex
 
 from textual.app import App, ComposeResult
 from textual.widgets import Button, DataTable, Static, Header, Label, Footer, TextLog, Input
-from textual.containers import Container, ScrollableContainer
+from textual.containers import Container, ScrollableContainer, Horizontal
 import pyfsdb
 
 
@@ -103,41 +103,48 @@ class FsdbView(App):
 
         self.data_table.remove_row(row_id)
 
-    def mount_cmd_input_and_focus(self, widget, show_history=True):
+    def mount_cmd_input_and_focus(self, widget, prompt="argument: ", show_history=True):
         "binds a standard input box and mounts after history"
+
+        self.label = Label(prompt, classes="entry_label")
 
         # show the history to date if appropriate
         if show_history and not self.added_comments:
             self.action_show_history()
 
+        container = Horizontal(self.label, widget, classes="entry_dialog")
+
         # show the new widget after the history
-        self.mount(widget, after = self.history_log)
+        self.mount(container, after = self.history_log)
 
         # and focus the keyboard toward it
         widget.focus()
+        return container
 
     def action_add_column(self):
         "add a new column to the data"
         class ColumnInput(Input):
             def __init__(self, base_parent, *args, **kwargs):
-                self.base_parent = base_parent
                 super().__init__(*args, **kwargs)
+                self.base_parent = base_parent
+                self.removeme = self
 
             def action_submit(self):
                 command = self.value
                 self.base_parent.run_pipe("dbcolcreate " + self.value)
-                self.remove()
+                self.removeme.remove()
 
 
-        self.column_input = ColumnInput(self, id="command_input")
-        self.mount_cmd_input_and_focus(self.column_input)
+        self.column_input = ColumnInput(self)
+        self.column_input.removeme = self.mount_cmd_input_and_focus(self.column_input, "column name:")
 
     def action_save(self):
         "saves the current contents to a new file"
         class ActionSave(Input):
             def __init__(self, base_parent, *args, **kwargs):
-                self.base_parent = base_parent
                 super().__init__(*args, **kwargs)
+                self.base_parent = base_parent
+                self.removeme = self
 
             def action_submit(self):
                 path = self.value
@@ -145,10 +152,11 @@ class FsdbView(App):
                 os.rename(self.base_parent.input_files[-1], str(path))
                 self.base_parent.input_file = path
                 self.base_parent.input_files[-1] = path
-                self.remove()
+                self.removeme.remove()
 
-        self.save_info = ActionSave(self, id="save")
-        self.mount_cmd_input_and_focus(self.save_info) # , show_history=False
+        self.save_info = ActionSave(self)
+        # TODO: , show_history=False
+        self.save_info.removeme = self.mount_cmd_input_and_focus(self.save_info, "file name:")
 
     def action_remove_column(self):
         "drops the current column by calling dbcol"
@@ -167,16 +175,17 @@ class FsdbView(App):
 
         class CommandInput(Input):
             def __init__(self, base_parent, *args, **kwargs):
-                self.base_parent = base_parent
                 super().__init__(*args, **kwargs)
+                self.base_parent = base_parent
+                self.removeme = self
 
             def action_submit(self):
                 command = self.value
                 self.base_parent.run_pipe(self.value)
-                self.remove()
+                self.removeme.remove()
 
-        self.command_input = CommandInput(self, id="command_input")
-        self.mount_cmd_input_and_focus(self.command_input)
+        self.command_input = CommandInput(self)
+        self.command_input.removeme = self.mount_cmd_input_and_focus(self.command_input, "command: ")
 
     def run_pipe(self, command="dbcolcreate foo"):
         "Runs a new command on the data, and re-displays the output file"

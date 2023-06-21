@@ -33,3 +33,9 @@
 #save {
     dock: bottom;
 }
+
+.entry_dialog {
+    dock: bottom;
+    height: 3;
+}
+
