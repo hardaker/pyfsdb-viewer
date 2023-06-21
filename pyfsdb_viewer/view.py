@@ -38,9 +38,9 @@ class FsdbView(App):
 
     CSS_PATH="pyfsdb_viewer.css"
     BINDINGS=[("q", "exit", "Quit"),
-              ("r", "remove_row", "Remove row"),
               ("h", "show_history", "command History"),
-              ("n", "add_column", "New column"),
+              ("a", "add_column", "Add column"),
+              ("d", "remove_column", "Delete column"),
               ("p", "pipe", "add command")]
 
     def __init__(self, input_file, *args, **kwargs):
@@ -114,6 +114,18 @@ class FsdbView(App):
 
         self.column_input = ColumnInput(self, id="command_input")
         self.mount_cmd_input_and_focus(self.column_input)
+
+    def action_remove_column(self):
+        "drops the current column by calling dbcol"
+        columns = self.data_table.ordered_columns
+        new_columns = []
+        for n, column in enumerate(columns):
+            if self.data_table.cursor_column != n:
+                new_columns.append(str(column.label))
+
+        # TODO: allow passing of exact arguments in a list
+        self.run_pipe('dbcol ' + " ".join(new_columns))
+        self.debug(new_columns)
 
     def action_pipe(self):
         "prompt for a command to run"
