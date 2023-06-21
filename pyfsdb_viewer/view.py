@@ -34,6 +34,23 @@ def parse_args():
                         format="%(levelname)-10s:\t%(message)s")
     return args
 
+def run_command_with_arguments(parent_obj, command_name, prompt):
+    class RunCommandWithArguments(Input):
+        def __init__(self, base_parent, command_name, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.base_parent = base_parent
+            self.command_name = command_name
+            self.removeme = self
+
+        def action_submit(self):
+            command = self.value
+            self.base_parent.run_pipe([self.command_name, self.value])
+            self.removeme.remove()
+
+    prompter = RunCommandWithArguments(parent_obj, command_name)
+    prompter.removeme = parent_obj.mount_cmd_input_and_focus(prompter, prompt)
+
+
 class FsdbView(App):
     "FSDB File Viewer"
 
@@ -124,21 +141,19 @@ class FsdbView(App):
         return container
 
     def action_add_column(self):
-        "add a new column to the data"
-        class ColumnInput(Input):
-            def __init__(self, base_parent, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self.base_parent = base_parent
-                self.removeme = self
+        "add a new column to the data with pdbcolcreate"
 
-            def action_submit(self):
-                command = self.value
-                self.base_parent.run_pipe(["dbcolcreate", self.value])
-                self.removeme.remove()
+        run_command_with_arguments(self, "dbcolcreate", "column name: ")
 
+    def action_filter(self):
+        "apply a row filter with pdbrow"
 
-        self.column_input = ColumnInput(self)
-        self.column_input.removeme = self.mount_cmd_input_and_focus(self.column_input, "column name:")
+        run_command_with_arguments(self, "pdbrow", "pdbrow filter: ")
+
+    def action_eval(self):
+        "Evaluate rows with a pdbroweval expression"
+
+        run_command_with_arguments(self, "pdbroweval", "pdbroweval expr: ")
 
     def action_save(self):
         "saves the current contents to a new file"
@@ -171,41 +186,6 @@ class FsdbView(App):
         # TODO: allow passing of exact arguments in a list
         self.run_pipe(['dbcol'] + new_columns)
         self.debug(new_columns)
-
-    def action_filter(self):
-        "apply a row filter with pdbrow"
-
-        class FilterInput(Input):
-            def __init__(self, base_parent, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self.base_parent = base_parent
-                self.removeme = self
-
-            def action_submit(self):
-                command = self.value
-                self.base_parent.run_pipe(["pdbrow", self.value])
-                self.removeme.remove()
-
-        self.filter_input = FilterInput(self)
-        self.filter_input.removeme = self.mount_cmd_input_and_focus(self.filter_input, "pdbrow filter: ")
-
-    def action_eval(self):
-        "Evaluate rows with a pdbroweval expression"
-
-        class FilterInput(Input):
-            def __init__(self, base_parent, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self.base_parent = base_parent
-                self.removeme = self
-
-            def action_submit(self):
-                command = self.value
-                self.base_parent.run_pipe(["pdbroweval", self.value])
-                self.removeme.remove()
-
-        self.eval_input = FilterInput(self)
-        self.eval_input.removeme = self.mount_cmd_input_and_focus(self.eval_input, "pdbroweval expr: ")
-        
 
     def action_pipe(self):
         "prompt for a command to run"
