@@ -29,3 +29,7 @@
 #ourfooter {
     dock: top;
 }
+
+#save {
+    dock: bottom;
+}

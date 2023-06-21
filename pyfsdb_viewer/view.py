@@ -2,6 +2,7 @@
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
 from logging import debug, info, warning, error, critical
+import os
 import logging
 import sys
 import re
@@ -42,6 +43,7 @@ class FsdbView(App):
               ("a", "add_column", "Add column"),
               ("d", "remove_column", "Delete column"),
               ("p", "pipe", "add command"),
+              ("s", "save", "Save"),
               ("u", "undo", "Undo")]
 
     def __init__(self, input_file, *args, **kwargs):
@@ -129,6 +131,24 @@ class FsdbView(App):
 
         self.column_input = ColumnInput(self, id="command_input")
         self.mount_cmd_input_and_focus(self.column_input)
+
+    def action_save(self):
+        "saves the current contents to a new file"
+        class ActionSave(Input):
+            def __init__(self, base_parent, *args, **kwargs):
+                self.base_parent = base_parent
+                super().__init__(*args, **kwargs)
+
+            def action_submit(self):
+                path = self.value
+                current = self.base_parent.input_file
+                os.rename(self.base_parent.input_files[-1], str(path))
+                self.base_parent.input_file = path
+                self.base_parent.input_files[-1] = path
+                self.remove()
+
+        self.save_info = ActionSave(self, id="save")
+        self.mount_cmd_input_and_focus(self.save_info) # , show_history=False
 
     def action_remove_column(self):
         "drops the current column by calling dbcol"
