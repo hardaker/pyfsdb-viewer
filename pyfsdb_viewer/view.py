@@ -42,6 +42,7 @@ class FsdbView(App):
               ("h", "show_history", "command History"),
               ("a", "add_column", "Add column"),
               ("d", "remove_column", "Delete column"),
+              ("f", "filter", "Filter"),
               ("p", "pipe", "add command"),
               ("s", "save", "Save"),
               ("u", "undo", "Undo")]
@@ -131,7 +132,7 @@ class FsdbView(App):
 
             def action_submit(self):
                 command = self.value
-                self.base_parent.run_pipe("dbcolcreate " + self.value)
+                self.base_parent.run_pipe(["dbcolcreate", self.value])
                 self.removeme.remove()
 
 
@@ -167,8 +168,26 @@ class FsdbView(App):
                 new_columns.append(str(column.label))
 
         # TODO: allow passing of exact arguments in a list
-        self.run_pipe('dbcol ' + " ".join(new_columns))
+        self.run_pipe(['dbcol'] + new_columns)
         self.debug(new_columns)
+
+    def action_filter(self):
+        "apply a row filter"
+
+        class FilterInput(Input):
+            def __init__(self, base_parent, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.base_parent = base_parent
+                self.removeme = self
+
+            def action_submit(self):
+                command = self.value
+                self.base_parent.run_pipe(["pdbrow", self.value])
+                self.removeme.remove()
+
+        self.filter_input = FilterInput(self)
+        self.filter_input.removeme = self.mount_cmd_input_and_focus(self.filter_input, "pdbrow filter: ")
+        
 
     def action_pipe(self):
         "prompt for a command to run"
@@ -187,10 +206,11 @@ class FsdbView(App):
         self.command_input = CommandInput(self)
         self.command_input.removeme = self.mount_cmd_input_and_focus(self.command_input, "command: ")
 
-    def run_pipe(self, command="dbcolcreate foo"):
+    def run_pipe(self, command_parts="dbcolcreate foo"):
         "Runs a new command on the data, and re-displays the output file"
         
-        command_parts = shlex.split(command)
+        if not isinstance(command_parts, list):
+            command_parts = shlex.split(command)
         p = Popen(command_parts, stdout=PIPE, stdin=PIPE, stderr=PIPE)
         
         # run the specified command
