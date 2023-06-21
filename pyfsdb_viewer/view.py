@@ -43,6 +43,7 @@ class FsdbView(App):
               ("a", "add_column", "Add column"),
               ("d", "remove_column", "Delete column"),
               ("f", "filter", "Filter"),
+              ("e", "eval", "Eval"),
               ("p", "pipe", "add command"),
               ("s", "save", "Save"),
               ("u", "undo", "Undo")]
@@ -172,7 +173,7 @@ class FsdbView(App):
         self.debug(new_columns)
 
     def action_filter(self):
-        "apply a row filter"
+        "apply a row filter with pdbrow"
 
         class FilterInput(Input):
             def __init__(self, base_parent, *args, **kwargs):
@@ -187,6 +188,23 @@ class FsdbView(App):
 
         self.filter_input = FilterInput(self)
         self.filter_input.removeme = self.mount_cmd_input_and_focus(self.filter_input, "pdbrow filter: ")
+
+    def action_eval(self):
+        "Evaluate rows with a pdbroweval expression"
+
+        class FilterInput(Input):
+            def __init__(self, base_parent, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.base_parent = base_parent
+                self.removeme = self
+
+            def action_submit(self):
+                command = self.value
+                self.base_parent.run_pipe(["pdbroweval", self.value])
+                self.removeme.remove()
+
+        self.eval_input = FilterInput(self)
+        self.eval_input.removeme = self.mount_cmd_input_and_focus(self.eval_input, "pdbroweval expr: ")
         
 
     def action_pipe(self):
