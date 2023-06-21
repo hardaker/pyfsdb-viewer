@@ -41,10 +41,12 @@ class FsdbView(App):
               ("h", "show_history", "command History"),
               ("a", "add_column", "Add column"),
               ("d", "remove_column", "Delete column"),
-              ("p", "pipe", "add command")]
+              ("p", "pipe", "add command"),
+              ("u", "undo", "Undo")]
 
     def __init__(self, input_file, *args, **kwargs):
         self.input_file = open(input_file, "r")
+        self.input_files = [input_file]
         self.added_comments = False
         super().__init__(*args, **kwargs)
 
@@ -65,11 +67,16 @@ class FsdbView(App):
                                    self.data_table, self.footer, id="mainpanel")
         yield self.container
 
+    def reload_data(self):
+        self.data_table.clear(columns=True)
+        self.load_data()
+
     def load_data(self) -> None:
         self.fsh = pyfsdb.Fsdb(file_handle=self.input_file)
         self.data_table.add_columns(*self.fsh.column_names)
         self.rows = self.fsh.get_all()
         self.data_table.add_rows(self.rows)
+        self.ourtitle.update(self.input_file.name)
 
     def on_mount(self) -> None:
         self.load_data()
@@ -80,6 +87,14 @@ class FsdbView(App):
 
     def action_exit(self):
         self.exit()
+
+    def action_undo(self):
+        self.debug(self.input_files)
+        self.input_files.pop()
+        self.debug(self.input_files[-1])
+        self.input_file = open(self.input_files[-1], "r")
+        self.data_table.clear(columns=True)
+        self.reload_data()
 
     def action_remove_row(self):
         row_id, _ = self.data_table.coordinate_to_cell_key(self.data_table.cursor_coordinate)
@@ -155,9 +170,9 @@ class FsdbView(App):
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             self.debug(tmp.name)
             tmp.write(output_data[0])
+            self.input_files.append(tmp.name)
             self.input_file = open(tmp.name, "r")
-        self.data_table.clear(columns=True)
-        self.load_data()
+        self.reload_data()
         self.action_show_history(force=True)
 
     def action_show_history(self, force=False):
