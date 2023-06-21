@@ -228,7 +228,7 @@ class FsdbView(App):
         "Runs a new command on the data, and re-displays the output file"
         
         if not isinstance(command_parts, list):
-            command_parts = shlex.split(command)
+            command_parts = shlex.split(command_parts)
         p = Popen(command_parts, stdout=PIPE, stdin=PIPE, stderr=PIPE)
         
         # run the specified command
