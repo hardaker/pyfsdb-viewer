@@ -26,6 +26,9 @@ def parse_args():
     parser.add_argument("--log-level", "--ll", default="info",
                         help="Define the logging verbosity level (debug, info, warning, error, fotal, critical).")
 
+    parser.add_argument("-n", "--max-rows", default=1024, type=int,
+                        help="Maximum number of rows to load at start")
+
     parser.add_argument("input_file", help="The file to view")
 
     args = parser.parse_args()
@@ -69,6 +72,12 @@ class FsdbView(App):
         self.input_file = open(input_file, "r")
         self.input_files = [input_file]
         self.added_comments = False
+
+        self.max_rows = None
+        if 'max_rows' in kwargs:
+            self.max_rows = kwargs['max_rows']
+            del kwargs['max_rows']
+
         super().__init__(*args, **kwargs)
 
     def debug(self, obj):
@@ -95,7 +104,11 @@ class FsdbView(App):
     def load_data(self) -> None:
         self.fsh = pyfsdb.Fsdb(file_handle=self.input_file)
         self.data_table.add_columns(*self.fsh.column_names)
-        self.rows = self.fsh.get_all()
+        self.rows = []
+        for n, row in enumerate(self.fsh):
+            self.rows.append(row)
+            if self.max_rows and n == self.max_rows:
+                break
         self.data_table.add_rows(self.rows)
         self.ourtitle.update(self.input_file.name)
 
@@ -252,7 +265,7 @@ class FsdbView(App):
 
 def main():
     args = parse_args()
-    app = FsdbView(args.input_file)
+    app = FsdbView(args.input_file, max_rows=args.max_rows)
     app.run()
 
 
