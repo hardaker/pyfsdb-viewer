@@ -223,24 +223,22 @@ class FsdbView(App):
         self.action_show_history(force=True)
 
     def action_show_history(self, force=False):
-        "show's the comment history"
+        "show's the command history that created the file"
         if self.added_comments:
             self.history_log.remove()
             self.added_comments = False
             if not force:
                 return
-        
+
         self.added_comments = True
 
         self.history_log = TextLog(id="history")
         self.mount(self.history_log, after = self.data_table)
 
-        is_command = re.compile("# +\|")
         count = 0
-        for comment in self.fsh.comments:
-            if is_command.match(comment):
-                count += 1
-                self.history_log.write(comment.strip())
+        for command in self.fsh.commands:
+            count += 1
+            self.history_log.write(command)
 
         # needs + 1 (maybe because of footer?)
         self.history_log.styles.height = count + 1
