@@ -235,6 +235,12 @@ class FsdbView(App):
         self.history_log = TextLog(id="history")
         self.mount(self.history_log, after = self.data_table)
 
+        if self.fsh.commands is None:
+            # this means pyfsdb couldn't get them
+            self.history_log.write("[HISTORY UNAVAILABLE]")
+            self.history_log.styles.height = 2
+            return
+
         count = 0
         for command in self.fsh.commands:
             count += 1
