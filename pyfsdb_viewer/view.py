@@ -64,7 +64,8 @@ class FsdbView(App):
               ("d", "remove_column", "Delete column"),
               ("f", "filter", "Filter"),
               ("e", "eval", "Eval"),
-              ("p", "pipe", "add command"),
+              ("|", "pipe", "add command"),
+              ("l", "load_more_data", "Load more"),
               ("s", "save", "Save"),
               ("u", "undo", "Undo")]
 
@@ -86,7 +87,7 @@ class FsdbView(App):
 
     def compose(self) -> ComposeResult:
         self.header = Header()
-        
+
         self.ourtitle = Label(self.input_file.name, id="ourtitle")
 
         self.data_table = DataTable(fixed_rows=1, id="fsdbtable")
@@ -105,12 +106,17 @@ class FsdbView(App):
         self.fsh = pyfsdb.Fsdb(file_handle=self.input_file)
         self.data_table.add_columns(*self.fsh.column_names)
         self.rows = []
+        self.action_load_more_data()
+        self.ourtitle.update(self.input_file.name)
+
+    def action_load_more_data(self) -> None:
+        more_rows = []
         for n, row in enumerate(self.fsh):
-            self.rows.append(row)
+            more_rows.append(row)
             if self.max_rows and n == self.max_rows:
                 break
-        self.data_table.add_rows(self.rows)
-        self.ourtitle.update(self.input_file.name)
+        self.data_table.add_rows(more_rows)
+        self.rows.extend(more_rows)
 
     def on_mount(self) -> None:
         self.load_data()
