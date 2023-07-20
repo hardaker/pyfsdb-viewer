@@ -14,6 +14,7 @@ import shlex
 from textual.app import App, ComposeResult
 from textual.widgets import Button, DataTable, Static, Header, Label, Footer, TextLog, Input
 from textual.containers import Container, ScrollableContainer, Horizontal, Vertical
+from textual.binding import Binding
 import pyfsdb
 
 
@@ -66,6 +67,7 @@ class FsdbView(App):
               ("e", "eval", "Eval"),
               ("|", "pipe", "add command"),
               ("l", "load_more_data", "Load more"),
+              Binding("escape", "cancel", "Cancel", show="false"),
               ("s", "save", "Save"),
               ("u", "undo", "Undo")]
 
@@ -73,6 +75,7 @@ class FsdbView(App):
         self.input_file = open(input_file, "r")
         self.input_files = [input_file]
         self.added_comments = False
+        self.current_input = None
 
         self.max_rows = None
         if 'max_rows' in kwargs:
@@ -128,6 +131,13 @@ class FsdbView(App):
     def action_exit(self):
         self.exit()
 
+    def action_cancel(self):
+        if self.current_input:
+            self.current_input.remove()
+            self.current_input = None
+        else:
+            self.action_exit()
+
     def action_undo(self):
         self.debug(self.input_files)
         self.input_files.pop()
@@ -157,6 +167,7 @@ class FsdbView(App):
 
         # and focus the keyboard toward it
         widget.focus()
+        self.current_input = container
         return container
 
     def action_add_column(self):
