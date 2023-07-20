@@ -13,7 +13,7 @@ import shlex
 
 from textual.app import App, ComposeResult
 from textual.widgets import Button, DataTable, Static, Header, Label, Footer, TextLog, Input
-from textual.containers import Container, ScrollableContainer, Horizontal
+from textual.containers import Container, ScrollableContainer, Horizontal, Vertical
 import pyfsdb
 
 
@@ -150,10 +150,10 @@ class FsdbView(App):
         if show_history and not self.added_comments:
             self.action_show_history()
 
-        container = Horizontal(self.label, widget, classes="entry_dialog")
+        container = Vertical(self.label, widget, classes="entry_dialog")
 
         # show the new widget after the history
-        self.mount(container, after = self.history_log)
+        self.mount(container)
 
         # and focus the keyboard toward it
         widget.focus()
