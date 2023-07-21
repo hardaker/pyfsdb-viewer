@@ -84,6 +84,12 @@ class FsdbView(App):
 
         super().__init__(*args, **kwargs)
 
+    def error(self, err_string):
+        "displays an error message (will be a dialog box)"
+        lab = Label(err_string)
+        self.mount_cmd_input_and_focus(lab, prompt="error: ", show_history=False)
+        # error(err_string)
+
     def debug(self, obj):
         with open("/tmp/debug.txt", "w") as d:
             d.write(str(obj) + "\n")
@@ -153,6 +159,7 @@ class FsdbView(App):
 
     def mount_cmd_input_and_focus(self, widget, prompt="argument: ", show_history=True):
         "binds a standard input box and mounts after history"
+        debug(widget)
 
         self.label = Label(prompt, classes="entry_label")
 
@@ -187,6 +194,11 @@ class FsdbView(App):
 
     def action_save(self):
         "saves the current contents to a new file"
+
+        if len(self.input_files) == 1:
+            self.error("Cannot rename the unmodified original file")
+            return
+
         class ActionSave(Input):
             def __init__(self, base_parent, *args, **kwargs):
                 super().__init__(*args, **kwargs)
