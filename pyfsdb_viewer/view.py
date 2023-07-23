@@ -145,9 +145,7 @@ class FsdbView(App):
             self.action_exit()
 
     def action_undo(self):
-        self.debug(self.input_files)
         self.input_files.pop()
-        self.debug(self.input_files[-1])
         self.input_file = open(self.input_files[-1], "r")
         self.data_table.clear(columns=True)
         self.reload_data()
