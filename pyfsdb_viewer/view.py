@@ -204,12 +204,15 @@ class FsdbView(App):
                 self.removeme = self
 
             def action_submit(self):
-                path = self.value
-                current = self.base_parent.input_file
-                os.rename(self.base_parent.input_files[-1], str(path))
-                self.base_parent.input_file = path
-                self.base_parent.input_files[-1] = path
-                self.removeme.remove()
+                try:
+                    path = self.value
+                    current = self.base_parent.input_file
+                    os.rename(self.base_parent.input_files[-1], str(path))
+                    self.base_parent.input_file = path
+                    self.base_parent.input_files[-1] = path
+                    self.removeme.remove()
+                except Exception as e:
+                    self.base_parent.error(f"failed to save: {e}")
 
         self.save_info = ActionSave(self)
         # TODO: , show_history=False
@@ -225,7 +228,6 @@ class FsdbView(App):
 
         # TODO: allow passing of exact arguments in a list
         self.run_pipe(['dbcol'] + new_columns)
-        self.debug(new_columns)
 
     def action_pipe(self):
         "prompt for a command to run"
@@ -249,18 +251,21 @@ class FsdbView(App):
         
         if not isinstance(command_parts, list):
             command_parts = shlex.split(command_parts)
-        p = Popen(command_parts, stdout=PIPE, stdin=PIPE, stderr=PIPE)
+
+        try:
+            p = Popen(command_parts, stdout=PIPE, stdin=PIPE, stderr=PIPE)
         
-        # run the specified command
-        input_file = open(self.input_file.name, "r").read().encode()
-        output_data = p.communicate(input=input_file)
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
-            self.debug(tmp.name)
-            tmp.write(output_data[0])
-            self.input_files.append(tmp.name)
-            self.input_file = open(tmp.name, "r")
-        self.reload_data()
-        self.action_show_history(force=True)
+            # run the specified command
+            input_file = open(self.input_file.name, "r").read().encode()
+            output_data = p.communicate(input=input_file)
+            with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                tmp.write(output_data[0])
+                self.input_files.append(tmp.name)
+                self.input_file = open(tmp.name, "r")
+            self.reload_data()
+            self.action_show_history(force=True)
+        except Exception as e:
+            self.debug(f"failed with {e}")
 
     def action_show_history(self, force=False):
         "show's the command history that created the file"
