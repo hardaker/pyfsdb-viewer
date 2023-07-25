@@ -188,9 +188,9 @@ class FsdbView(App):
         container = Vertical(self.label, widget, classes="entry_dialog")
 
         if len(buttons) > 0:
-            button_horiz = Horizontal(classes="button_row")
+            button_horiz = Horizontal(classes="entry_button_row")
             for button in buttons:
-                button_widget = Button(button)
+                button_widget = Button(button, classes="entry_button")
                 button_horiz.compose_add_child(button_widget)
 
             container.compose_add_child(button_horiz)

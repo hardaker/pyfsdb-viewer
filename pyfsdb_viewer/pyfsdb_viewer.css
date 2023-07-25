@@ -57,7 +57,10 @@ Screen {
     padding-right: 1;
 }
 
-.button_row {
+.entry_button_row {
     margin-top: 1;
-    margine-right: 1;
+}
+
+.entry_button {
+    margin-right: 1;
 }
