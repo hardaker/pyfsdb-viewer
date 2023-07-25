@@ -76,6 +76,8 @@ class FsdbView(App):
         self.input_files = [input_file]
         self.added_comments = False
         self.current_input = None
+        self.callback = None
+        self.ok_callback = None
 
         self.max_rows = None
         if 'max_rows' in kwargs:
@@ -87,7 +89,8 @@ class FsdbView(App):
     def error(self, err_string):
         "displays an error message (will be a dialog box)"
         lab = Label(err_string)
-        self.mount_cmd_input_and_focus(lab, prompt="error: ", show_history=False)
+        self.mount_cmd_input_and_focus(lab, prompt="error: ", show_history=False,
+                                       buttons=["Ok"], callback=self.button_cancel)
         # error(err_string)
 
     def debug(self, obj):
@@ -132,10 +135,26 @@ class FsdbView(App):
         self.data_table.focus()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        self.exit(event.button.id)
+        if self.callback:
+            self.debug(event)
+            self.callback(event)
+            self.callback = None
+            self.current_input.remove()
+        else:
+            self.error("unknown button -- internal error")
 
     def action_exit(self):
         self.exit()
+
+    def button_cancel(self, cancel_button):
+        self.debug(cancel_button.control.label)
+        self.action_cancel()
+
+    def button_ok_or_cancel(self, ok_button):
+        self.debug("button here: {ok_button.control.label}")
+        if str(ok_button.control.label).lower() == "ok":
+            self.debug("button here2: {ok_button.control.label}")
+            self.ok_callback(ok_button)
 
     def action_cancel(self):
         if self.current_input:
@@ -155,7 +174,8 @@ class FsdbView(App):
 
         self.data_table.remove_row(row_id)
 
-    def mount_cmd_input_and_focus(self, widget, prompt="argument: ", show_history=True):
+    def mount_cmd_input_and_focus(self, widget, prompt="argument: ", show_history=True,
+                                  buttons=[], callback=None, ok_callback=None):
         "binds a standard input box and mounts after history"
         debug(widget)
 
@@ -166,6 +186,19 @@ class FsdbView(App):
             self.action_show_history()
 
         container = Vertical(self.label, widget, classes="entry_dialog")
+
+        if len(buttons) > 0:
+            button_horiz = Horizontal(classes="button_row")
+            for button in buttons:
+                button_widget = Button(button)
+                button_horiz.compose_add_child(button_widget)
+
+            container.compose_add_child(button_horiz)
+
+        self.callback = callback
+        self.ok_callback = ok_callback
+        if not self.callback and self.ok_callback:
+            self.callback = self.button_ok_or_cancel
 
         # show the new widget after the history
         self.mount(container)
@@ -190,6 +223,13 @@ class FsdbView(App):
 
         run_command_with_arguments(self, "pdbroweval", "pdbroweval expr: ")
 
+    def save_current(self, button):
+        current = self.input_file
+        path = str(self.save_info.value)
+        os.rename(self.input_files[-1], path)
+        self.input_file = path
+        self.input_files[-1] = path
+
     def action_save(self):
         "saves the current contents to a new file"
 
@@ -197,26 +237,10 @@ class FsdbView(App):
             self.error("Cannot rename the unmodified original file")
             return
 
-        class ActionSave(Input):
-            def __init__(self, base_parent, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self.base_parent = base_parent
-                self.removeme = self
-
-            def action_submit(self):
-                try:
-                    path = self.value
-                    current = self.base_parent.input_file
-                    os.rename(self.base_parent.input_files[-1], str(path))
-                    self.base_parent.input_file = path
-                    self.base_parent.input_files[-1] = path
-                    self.removeme.remove()
-                except Exception as e:
-                    self.base_parent.error(f"failed to save: {e}")
-
-        self.save_info = ActionSave(self)
-        # TODO: , show_history=False
-        self.save_info.removeme = self.mount_cmd_input_and_focus(self.save_info, "file name:")
+        self.save_info = Input()
+        self.mount_cmd_input_and_focus(self.save_info, "file name:",
+                                       buttons=["Ok", "cancel"],
+                                       ok_callback=self.save_current)
 
     def action_remove_column(self):
         "drops the current column by calling dbcol"
