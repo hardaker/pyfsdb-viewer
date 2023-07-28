@@ -12,7 +12,16 @@ from subprocess import Popen, PIPE, STDOUT
 import shlex
 
 from textual.app import App, ComposeResult
-from textual.widgets import Button, DataTable, Static, Header, Label, Footer, TextLog, Input
+from textual.widgets import (
+    Button,
+    DataTable,
+    Static,
+    Header,
+    Label,
+    Footer,
+    TextLog,
+    Input,
+)
 from textual.containers import Container, ScrollableContainer, Horizontal, Vertical
 from textual.binding import Binding
 import pyfsdb
@@ -20,23 +29,34 @@ import pyfsdb
 
 def parse_args():
     "Parse the command line arguments."
-    parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter,
-                            description=__doc__,
-                            epilog="Exmaple Usage: pdbview FILE.fsdb")
+    parser = ArgumentParser(
+        formatter_class=ArgumentDefaultsHelpFormatter,
+        description=__doc__,
+        epilog="Exmaple Usage: pdbview FILE.fsdb",
+    )
 
-    parser.add_argument("--log-level", "--ll", default="info",
-                        help="Define the logging verbosity level (debug, info, warning, error, fotal, critical).")
+    parser.add_argument(
+        "--log-level",
+        "--ll",
+        default="info",
+        help="Define the logging verbosity level (debug, info, warning, error, fotal, critical).",
+    )
 
-    parser.add_argument("-n", "--max-rows", default=1024, type=int,
-                        help="Maximum number of rows to load at start")
+    parser.add_argument(
+        "-n",
+        "--max-rows",
+        default=1024,
+        type=int,
+        help="Maximum number of rows to load at start",
+    )
 
     parser.add_argument("input_file", help="The file to view")
 
     args = parser.parse_args()
     log_level = args.log_level.upper()
-    logging.basicConfig(level=log_level,
-                        format="%(levelname)-10s:\t%(message)s")
+    logging.basicConfig(level=log_level, format="%(levelname)-10s:\t%(message)s")
     return args
+
 
 def run_command_with_arguments(parent_obj, command_name, prompt):
     class RunCommandWithArguments(Input):
@@ -58,18 +78,20 @@ def run_command_with_arguments(parent_obj, command_name, prompt):
 class FsdbView(App):
     "FSDB File Viewer"
 
-    CSS_PATH="pyfsdb_viewer.css"
-    BINDINGS=[("q", "exit", "Quit"),
-              ("h", "show_history", "command History"),
-              ("a", "add_column", "Add column"),
-              ("d", "remove_column", "Delete column"),
-              ("f", "filter", "Filter"),
-              ("e", "eval", "Eval"),
-              ("|", "pipe", "add command"),
-              ("l", "load_more_data", "Load more"),
-              Binding("escape", "cancel", "Cancel", show="false"),
-              ("s", "save", "Save"),
-              ("u", "undo", "Undo")]
+    CSS_PATH = "pyfsdb_viewer.css"
+    BINDINGS = [
+        ("q", "exit", "Quit"),
+        ("h", "show_history", "command History"),
+        ("a", "add_column", "Add column"),
+        ("d", "remove_column", "Delete column"),
+        ("f", "filter", "Filter"),
+        ("e", "eval", "Eval"),
+        ("|", "pipe", "add command"),
+        ("l", "load_more_data", "Load more"),
+        Binding("escape", "cancel", "Cancel", show="false"),
+        ("s", "save", "Save"),
+        ("u", "undo", "Undo"),
+    ]
 
     def __init__(self, input_file, *args, **kwargs):
         self.input_file = open(input_file, "r")
@@ -80,19 +102,22 @@ class FsdbView(App):
         self.ok_callback = None
 
         self.max_rows = None
-        if 'max_rows' in kwargs:
-            self.max_rows = kwargs['max_rows']
-            del kwargs['max_rows']
+        if "max_rows" in kwargs:
+            self.max_rows = kwargs["max_rows"]
+            del kwargs["max_rows"]
 
         super().__init__(*args, **kwargs)
 
     def error(self, err_string):
         "displays an error message (will be a dialog box)"
         lab = Label(err_string)
-        self.mount_cmd_input_and_focus(lab, prompt="error: ",
-                                       show_history=False,
-                                       buttons=["Close"],
-                                       callback=self.button_cancel)
+        self.mount_cmd_input_and_focus(
+            lab,
+            prompt="error: ",
+            show_history=False,
+            buttons=["Close"],
+            callback=self.button_cancel,
+        )
         # error(err_string)
 
     def debug(self, obj):
@@ -108,8 +133,9 @@ class FsdbView(App):
 
         self.footer = Footer()
 
-        self.container = Container(self.header, self.ourtitle,
-                                   self.data_table, self.footer, id="mainpanel")
+        self.container = Container(
+            self.header, self.ourtitle, self.data_table, self.footer, id="mainpanel"
+        )
         yield self.container
 
     def reload_data(self):
@@ -172,12 +198,21 @@ class FsdbView(App):
         self.reload_data()
 
     def action_remove_row(self):
-        row_id, _ = self.data_table.coordinate_to_cell_key(self.data_table.cursor_coordinate)
+        row_id, _ = self.data_table.coordinate_to_cell_key(
+            self.data_table.cursor_coordinate
+        )
 
         self.data_table.remove_row(row_id)
 
-    def mount_cmd_input_and_focus(self, widget, prompt="argument: ", show_history=True,
-                                  buttons=[], callback=None, ok_callback=None):
+    def mount_cmd_input_and_focus(
+        self,
+        widget,
+        prompt="argument: ",
+        show_history=True,
+        buttons=[],
+        callback=None,
+        ok_callback=None,
+    ):
         "binds a standard input box and mounts after history"
         debug(widget)
 
@@ -245,8 +280,9 @@ class FsdbView(App):
             return
 
         self.save_info = Input()
-        self.mount_cmd_input_and_focus(self.save_info, "file name:",
-                                       ok_callback=self.save_current)
+        self.mount_cmd_input_and_focus(
+            self.save_info, "file name:", ok_callback=self.save_current
+        )
 
     def action_remove_column(self):
         "drops the current column by calling dbcol"
@@ -257,7 +293,7 @@ class FsdbView(App):
                 new_columns.append(str(column.label))
 
         # TODO: allow passing of exact arguments in a list
-        self.run_pipe(['dbcol'] + new_columns)
+        self.run_pipe(["dbcol"] + new_columns)
 
     def action_pipe(self):
         "prompt for a command to run"
@@ -274,17 +310,19 @@ class FsdbView(App):
                 self.removeme.remove()
 
         self.command_input = CommandInput(self)
-        self.command_input.removeme = self.mount_cmd_input_and_focus(self.command_input, "command: ")
+        self.command_input.removeme = self.mount_cmd_input_and_focus(
+            self.command_input, "command: "
+        )
 
     def run_pipe(self, command_parts="dbcolcreate foo"):
         "Runs a new command on the data, and re-displays the output file"
-        
+
         if not isinstance(command_parts, list):
             command_parts = shlex.split(command_parts)
 
         try:
             p = Popen(command_parts, stdout=PIPE, stdin=PIPE, stderr=PIPE)
-        
+
             # run the specified command
             input_file = open(self.input_file.name, "r").read().encode()
             output_data = p.communicate(input=input_file)
@@ -308,7 +346,7 @@ class FsdbView(App):
         self.added_comments = True
 
         self.history_log = TextLog(id="history")
-        self.mount(self.history_log, after = self.data_table)
+        self.mount(self.history_log, after=self.data_table)
 
         if self.fsh.commands is None:
             # this means pyfsdb couldn't get them
