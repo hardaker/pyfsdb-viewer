@@ -229,6 +229,7 @@ class FsdbView(App):
         os.rename(self.input_files[-1], path)
         self.input_file = path
         self.input_files[-1] = path
+        self.ourtitle.update(path)
 
     def action_save(self):
         "saves the current contents to a new file"
