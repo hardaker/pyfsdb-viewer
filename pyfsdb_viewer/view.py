@@ -89,8 +89,10 @@ class FsdbView(App):
     def error(self, err_string):
         "displays an error message (will be a dialog box)"
         lab = Label(err_string)
-        self.mount_cmd_input_and_focus(lab, prompt="error: ", show_history=False,
-                                       buttons=["Ok"], callback=self.button_cancel)
+        self.mount_cmd_input_and_focus(lab, prompt="error: ",
+                                       show_history=False,
+                                       buttons=["Close"],
+                                       callback=self.button_cancel)
         # error(err_string)
 
     def debug(self, obj):
