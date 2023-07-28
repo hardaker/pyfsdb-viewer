@@ -187,6 +187,15 @@ class FsdbView(App):
 
         container = Vertical(self.label, widget, classes="entry_dialog")
 
+        self.callback = callback
+        self.ok_callback = ok_callback
+        if not self.callback and self.ok_callback:
+            self.callback = self.button_ok_or_cancel
+
+        # use default buttons if the ok_callback was created
+        if len(buttons) == 0 and self.ok_callback:
+            buttons = ["Ok", "Cancel"]
+
         if len(buttons) > 0:
             button_horiz = Horizontal(classes="entry_button_row")
             for button in buttons:
@@ -194,11 +203,6 @@ class FsdbView(App):
                 button_horiz.compose_add_child(button_widget)
 
             container.compose_add_child(button_horiz)
-
-        self.callback = callback
-        self.ok_callback = ok_callback
-        if not self.callback and self.ok_callback:
-            self.callback = self.button_ok_or_cancel
 
         # show the new widget after the history
         self.mount(container)
@@ -240,7 +244,6 @@ class FsdbView(App):
 
         self.save_info = Input()
         self.mount_cmd_input_and_focus(self.save_info, "file name:",
-                                       buttons=["Ok", "cancel"],
                                        ok_callback=self.save_current)
 
     def action_remove_column(self):
