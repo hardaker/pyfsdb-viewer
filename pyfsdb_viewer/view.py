@@ -89,7 +89,7 @@ class FsdbView(App):
         ("|", "pipe", "add command"),
         ("l", "load_more_data", "Load more"),
         Binding("escape", "cancel", "Cancel", show="false"),
-        Binding("D", "show_debug_log", "Debug", show="false"),
+        Binding("z", "show_debug_log", "Debug", show="false"),
         ("s", "save", "Save"),
         ("u", "undo", "Undo"),
     ]
