@@ -295,23 +295,17 @@ class FsdbView(App):
         # TODO: allow passing of exact arguments in a list
         self.run_pipe(["dbcol"] + new_columns)
 
+    def run_entered_command(self, command):
+        self.run_pipe(self.command_input.value)
+
     def action_pipe(self):
         "prompt for a command to run"
 
-        class CommandInput(Input):
-            def __init__(self, base_parent, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self.base_parent = base_parent
-                self.removeme = self
-
-            def action_submit(self):
-                command = self.value
-                self.base_parent.run_pipe(self.value)
-                self.removeme.remove()
-
-        self.command_input = CommandInput(self)
-        self.command_input.removeme = self.mount_cmd_input_and_focus(
-            self.command_input, "command: "
+        self.command_input = Input()
+        self.mount_cmd_input_and_focus(
+            self.command_input,
+            "command: ",
+            ok_callback=self.run_entered_command,
         )
 
     def run_pipe(self, command_parts="dbcolcreate foo"):
@@ -331,7 +325,6 @@ class FsdbView(App):
                 self.input_files.append(tmp.name)
                 self.input_file = open(tmp.name, "r")
             self.reload_data()
-            self.action_show_history(force=True)
         except Exception as e:
             self.debug(f"failed with {e}")
 
