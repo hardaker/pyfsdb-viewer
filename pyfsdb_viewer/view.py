@@ -89,6 +89,7 @@ class FsdbView(App):
         ("|", "pipe", "add command"),
         ("l", "load_more_data", "Load more"),
         Binding("escape", "cancel", "Cancel", show="false"),
+        Binding("D", "show_debug_log", "Debug", show="false"),
         ("s", "save", "Save"),
         ("u", "undo", "Undo"),
     ]
@@ -100,6 +101,7 @@ class FsdbView(App):
         self.current_input = None
         self.callback = None
         self.ok_callback = None
+        self.debug_log = []
 
         self.max_rows = None
         if "max_rows" in kwargs:
@@ -114,13 +116,13 @@ class FsdbView(App):
         self.mount_cmd_input_and_focus(
             lab,
             prompt="error: ",
-            show_history=False,
             buttons=["Close"],
             callback=self.button_cancel,
         )
         # error(err_string)
 
     def debug(self, obj):
+        self.debug_log.append(str(obj))
         with open("/tmp/debug.txt", "w") as d:
             d.write(str(obj) + "\n")
 
@@ -167,7 +169,9 @@ class FsdbView(App):
             self.debug(event)
             self.callback(event)
             self.callback = None
-            self.current_input.remove()
+            if self.current_input:
+                self.current_input.remove()
+            self.current_input = None
         else:
             self.error("unknown button -- internal error")
 
@@ -208,21 +212,17 @@ class FsdbView(App):
         self,
         widget,
         prompt="argument: ",
-        show_history=True,
         buttons=[],
         callback=None,
         ok_callback=None,
+        class_name="entry_dialog",
     ):
         "binds a standard input box and mounts after history"
         debug(widget)
 
         self.label = Label(prompt, classes="entry_label")
 
-        # show the history to date if appropriate
-        if show_history and not self.added_comments:
-            self.action_show_history()
-
-        container = Vertical(self.label, widget, classes="entry_dialog")
+        container = Vertical(self.label, widget, classes=class_name)
 
         self.callback = callback
         self.ok_callback = ok_callback
@@ -335,32 +335,31 @@ class FsdbView(App):
         except Exception as e:
             self.debug(f"failed with {e}")
 
+    def action_show_debug_log(self):
+        self.debug("showing debug log")
+        self.debug_log_ui = TextLog(id="debug_log")
+        for line in self.debug_log:
+            self.debug_log_ui.write(line)
+        self.mount_cmd_input_and_focus(
+            self.debug_log_ui, class_name="text_dialog", buttons=["Close"]
+        )
+
     def action_show_history(self, force=False):
         "show's the command history that created the file"
-        if self.added_comments:
-            self.history_log.remove()
-            self.added_comments = False
-            if not force:
-                return
 
-        self.added_comments = True
-
+        self.debug("showing history")
         self.history_log = TextLog(id="history")
-        self.mount(self.history_log, after=self.data_table)
 
         if self.fsh.commands is None:
             # this means pyfsdb couldn't get them
             self.history_log.write("[HISTORY UNAVAILABLE]")
-            self.history_log.styles.height = 2
-            return
+        else:
+            for command in self.fsh.commands:
+                self.history_log.write(command)
 
-        count = 0
-        for command in self.fsh.commands:
-            count += 1
-            self.history_log.write(command)
-
-        # needs + 1 (maybe because of footer?)
-        self.history_log.styles.height = count + 1
+        self.mount_cmd_input_and_focus(
+            self.history_log, class_name="text_dialog", buttons=["Close"]
+        )
 
 
 def main():
