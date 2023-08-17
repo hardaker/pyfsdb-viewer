@@ -26,6 +26,7 @@ from textual.containers import Container, ScrollableContainer, Horizontal, Verti
 from textual.binding import Binding
 import pyfsdb
 
+from dataloader import FsdbLoader
 
 def parse_args():
     "Parse the command line arguments."
@@ -102,6 +103,7 @@ class FsdbView(App):
         self.callback = None
         self.ok_callback = None
         self.debug_log = []
+        self.loader = None
 
         self.max_rows = None
         if "max_rows" in kwargs:
@@ -145,20 +147,16 @@ class FsdbView(App):
         self.load_data()
 
     def load_data(self) -> None:
-        self.fsh = pyfsdb.Fsdb(file_handle=self.input_file)
-        self.data_table.add_columns(*self.fsh.column_names)
+        self.loader = FsdbLoader(self.input_file)
+        self.loader.load_data()
+        self.data_table.add_columns(*self.loader.column_names())
         self.rows = []
         self.action_load_more_data()
-        self.ourtitle.update(self.input_file.name)
+        self.ourtitle.update(self.loader.name)
 
     def action_load_more_data(self) -> None:
-        more_rows = []
-        for n, row in enumerate(self.fsh):
-            more_rows.append(row)
-            if self.max_rows and n == self.max_rows:
-                break
-        self.data_table.add_rows(more_rows)
-        self.rows.extend(more_rows)
+        added_rows = self.loader.load_more_data(self.rows, self.max_rows)
+        self.data_table.add_rows(added_rows)
 
     def on_mount(self) -> None:
         self.load_data()
