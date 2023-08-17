@@ -24,7 +24,6 @@ from textual.widgets import (
 )
 from textual.containers import Container, ScrollableContainer, Horizontal, Vertical
 from textual.binding import Binding
-import pyfsdb
 
 from dataloader import FsdbLoader
 
