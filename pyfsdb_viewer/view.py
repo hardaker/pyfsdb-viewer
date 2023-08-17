@@ -15,7 +15,6 @@ from textual.app import App, ComposeResult
 from textual.widgets import Button, DataTable, Static, Header, Label, Footer, TextLog, Input
 from textual.containers import Container, ScrollableContainer, Horizontal, Vertical
 from textual.binding import Binding
-import pyfsdb
 
 from dataloader import FsdbLoader
 
