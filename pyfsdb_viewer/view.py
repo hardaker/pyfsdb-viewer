@@ -79,7 +79,7 @@ class FsdbView(App):
     "FSDB File Viewer"
 
     CSS_PATH="pyfsdb_viewer.css"
-    BINDINGS=[("q", "exit", "Quit"),
+    BINDINGS=[("q", "cancel", "Close/Quit"),
               ("?", "help", "Help"),
               ("h", "show_history", "command History"),
               ("a", "add_column", "Add column"),
@@ -188,7 +188,7 @@ class FsdbView(App):
             self.current_input.remove()
             self.current_input = None
         else:
-            self.action_exit()
+            self.exit()
 
     def action_undo(self):
         self.input_files.pop()
