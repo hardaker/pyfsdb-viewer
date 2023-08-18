@@ -59,7 +59,7 @@ class FsdbView(App):
     "FSDB File Viewer"
 
     CSS_PATH="pyfsdb_viewer.css"
-    BINDINGS=[("q", "exit", "Quit"),
+    BINDINGS=[("q", "cancel", "Close/Quit"),
               ("?", "help", "Help"),
               ("h", "show_history", "command History"),
               ("a", "add_column", "Add column"),
@@ -129,18 +129,12 @@ class FsdbView(App):
         self.load_data()
         self.data_table.focus()
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        self.exit(event.button.id)
-
-    def action_exit(self):
-        self.exit()
-
     def action_cancel(self):
         if self.current_input:
             self.current_input.remove()
             self.current_input = None
         else:
-            self.action_exit()
+            self.exit()
 
     def action_undo(self):
         self.debug(self.input_files)
@@ -217,7 +211,6 @@ class FsdbView(App):
                 self.removeme.remove()
 
         self.save_info = ActionSave(self)
-        # TODO: , show_history=False
         self.save_info.removeme = self.mount_cmd_input_and_focus(self.save_info, "file name:")
 
     def action_remove_column(self):
