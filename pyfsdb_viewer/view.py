@@ -89,7 +89,7 @@ class FsdbView(App):
     def error(self, err_string, prompt="error: "):
         "displays an error message (will be a dialog box)"
         lab = Label(err_string)
-        self.mount_cmd_input_and_focus(lab, prompt=prompt, show_history=False)
+        self.mount_cmd_input_and_focus(lab, prompt=prompt)
         # error(err_string)
 
     def debug(self, obj):
@@ -156,7 +156,7 @@ class FsdbView(App):
             if isinstance(binding, tuple):
                 message += f"{binding[0]}:  {binding[2]}\n"
         l = Label(message)
-        c = self.mount_cmd_input_and_focus(l, "Help: (pres ESC to exit)", show_history=False)
+        c = self.mount_cmd_input_and_focus(l, "Help: (pres ESC to exit)")
         c.styles.height = 20
 
     def action_remove_row(self):
@@ -164,14 +164,10 @@ class FsdbView(App):
 
         self.data_table.remove_row(row_id)
 
-    def mount_cmd_input_and_focus(self, widget, prompt="argument: ", show_history=True):
+    def mount_cmd_input_and_focus(self, widget, prompt="argument: "):
         "binds a standard input box and mounts after history"
         self.current_widget = widget
         self.label = Label(prompt, classes="entry_label")
-
-        # show the history to date if appropriate
-        if show_history and not self.added_comments:
-            self.action_show_history()
 
         container = Vertical(self.label, widget, classes="entry_dialog")
 
