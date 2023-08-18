@@ -197,13 +197,14 @@ class FsdbView(App):
         self.reload_data()
 
     def action_help(self):
-        message = "ESC: exit dialog box\n"
+        tl = TextLog()
+        tl.write("ESC:  exit a dialog box")
         for n, binding in enumerate(self.BINDINGS):
             if isinstance(binding, tuple):
-                message += f"{binding[0]}:  {binding[2]}\n"
-        l = Label(message)
-        c = self.mount_cmd_input_and_focus(l, "Help: (pres ESC to exit)")
-        c.styles.height = 20
+                tl.write(f"{binding[0] + ':':<4}  {binding[2]}")
+        c = self.mount_cmd_input_and_focus(tl, "Help: (pres ESC to exit)")
+        tl.styles.height = n+1
+        c.styles.height = n+5
 
     def action_remove_row(self):
         row_id, _ = self.data_table.coordinate_to_cell_key(
