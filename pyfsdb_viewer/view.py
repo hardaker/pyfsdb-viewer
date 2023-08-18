@@ -78,21 +78,20 @@ def run_command_with_arguments(parent_obj, command_name, prompt):
 class FsdbView(App):
     "FSDB File Viewer"
 
-    CSS_PATH = "pyfsdb_viewer.css"
-    BINDINGS = [
-        ("q", "exit", "Quit"),
-        ("h", "show_history", "command History"),
-        ("a", "add_column", "Add column"),
-        ("d", "remove_column", "Delete column"),
-        ("f", "filter", "Filter"),
-        ("e", "eval", "Eval"),
-        ("|", "pipe", "add command"),
-        ("l", "load_more_data", "Load more"),
-        Binding("escape", "cancel", "Cancel", show="false"),
-        Binding("z", "show_debug_log", "Debug", show="false"),
-        ("s", "save", "Save"),
-        ("u", "undo", "Undo"),
-    ]
+    CSS_PATH="pyfsdb_viewer.css"
+    BINDINGS=[("q", "exit", "Quit"),
+              ("?", "help", "Help"),
+              ("h", "show_history", "command History"),
+              ("a", "add_column", "Add column"),
+              ("d", "remove_column", "Delete column"),
+              ("f", "filter", "Filter"),
+              ("e", "eval", "Eval"),
+              ("|", "pipe", "add command"),
+              ("l", "load_more_data", "Load more"),
+              Binding("escape", "cancel", "Cancel", show="false"),
+              Binding("z", "show_debug_log", "Debug", show="false"),
+              ("s", "save", "Save"),
+              ("u", "undo", "Undo")]
 
     def __init__(self, input_file, *args, **kwargs):
         self.input_file = open(input_file, "r")
@@ -111,12 +110,12 @@ class FsdbView(App):
 
         super().__init__(*args, **kwargs)
 
-    def error(self, err_string):
+    def error(self, err_string, prompt="error: "):
         "displays an error message (will be a dialog box)"
         lab = Label(err_string)
         self.mount_cmd_input_and_focus(
             lab,
-            prompt="error: ",
+            prompt=prompt,
             buttons=["Close"],
             callback=self.button_cancel,
         )
@@ -198,6 +197,15 @@ class FsdbView(App):
         self.data_table.clear(columns=True)
         self.reload_data()
 
+    def action_help(self):
+        message = "ESC: exit dialog box\n"
+        for n, binding in enumerate(self.BINDINGS):
+            if isinstance(binding, tuple):
+                message += f"{binding[0]}:  {binding[2]}\n"
+        l = Label(message)
+        c = self.mount_cmd_input_and_focus(l, "Help: (pres ESC to exit)", show_history=False)
+        c.styles.height = 20
+
     def action_remove_row(self):
         row_id, _ = self.data_table.coordinate_to_cell_key(
             self.data_table.cursor_coordinate
@@ -215,8 +223,7 @@ class FsdbView(App):
         class_name="entry_dialog",
     ):
         "binds a standard input box and mounts after history"
-        debug(widget)
-
+        self.current_widget = widget
         self.label = Label(prompt, classes="entry_label")
 
         container = Vertical(self.label, widget, classes=class_name)
@@ -340,7 +347,7 @@ class FsdbView(App):
         self.debug("showing history")
         self.history_log = TextLog(id="history")
 
-        if self.fsh.commands is None:
+        if self.loader.commands is None:
             # this means pyfsdb couldn't get them
             self.history_log.write("[HISTORY UNAVAILABLE]")
         else:
