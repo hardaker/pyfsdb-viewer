@@ -60,6 +60,7 @@ class FsdbView(App):
 
     CSS_PATH="pyfsdb_viewer.css"
     BINDINGS=[("q", "exit", "Quit"),
+              ("?", "help", "Help"),
               ("h", "show_history", "command History"),
               ("a", "add_column", "Add column"),
               ("d", "remove_column", "Delete column"),
@@ -85,10 +86,10 @@ class FsdbView(App):
 
         super().__init__(*args, **kwargs)
 
-    def error(self, err_string):
+    def error(self, err_string, prompt="error: "):
         "displays an error message (will be a dialog box)"
         lab = Label(err_string)
-        self.mount_cmd_input_and_focus(lab, prompt="error: ", show_history=False)
+        self.mount_cmd_input_and_focus(lab, prompt=prompt, show_history=False)
         # error(err_string)
 
     def debug(self, obj):
@@ -149,6 +150,15 @@ class FsdbView(App):
         self.data_table.clear(columns=True)
         self.reload_data()
 
+    def action_help(self):
+        message = "ESC: exit dialog box\n"
+        for n, binding in enumerate(self.BINDINGS):
+            if isinstance(binding, tuple):
+                message += f"{binding[0]}:  {binding[2]}\n"
+        l = Label(message)
+        c = self.mount_cmd_input_and_focus(l, "Help: (pres ESC to exit)", show_history=False)
+        c.styles.height = 20
+
     def action_remove_row(self):
         row_id, _ = self.data_table.coordinate_to_cell_key(self.data_table.cursor_coordinate)
 
@@ -156,8 +166,7 @@ class FsdbView(App):
 
     def mount_cmd_input_and_focus(self, widget, prompt="argument: ", show_history=True):
         "binds a standard input box and mounts after history"
-        debug(widget)
-
+        self.current_widget = widget
         self.label = Label(prompt, classes="entry_label")
 
         # show the history to date if appropriate
@@ -274,14 +283,14 @@ class FsdbView(App):
         self.history_log = TextLog(id="history")
         self.mount(self.history_log, after = self.data_table)
 
-        if self.fsh.commands is None:
+        if self.loader.commands is None:
             # this means pyfsdb couldn't get them
             self.history_log.write("[HISTORY UNAVAILABLE]")
             self.history_log.styles.height = 2
             return
 
         count = 0
-        for command in self.fsh.commands:
+        for command in self.loader.commands:
             count += 1
             self.history_log.write(command)
 
