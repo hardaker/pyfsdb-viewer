@@ -119,7 +119,6 @@ class FsdbView(App):
             buttons=["Close"],
             callback=self.button_cancel,
         )
-        # error(err_string)
 
     def debug(self, obj):
         self.debug_log.append(str(obj))
@@ -203,7 +202,7 @@ class FsdbView(App):
             if isinstance(binding, tuple):
                 message += f"{binding[0]}:  {binding[2]}\n"
         l = Label(message)
-        c = self.mount_cmd_input_and_focus(l, "Help: (pres ESC to exit)", show_history=False)
+        c = self.mount_cmd_input_and_focus(l, "Help: (pres ESC to exit)")
         c.styles.height = 20
 
     def action_remove_row(self):

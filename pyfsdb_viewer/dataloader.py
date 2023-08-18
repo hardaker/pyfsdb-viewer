@@ -16,6 +16,13 @@ class FsdbLoader():
     def name(self):
         return self.fsh.file_handle.name
 
+    @property
+    def commands(self):
+        try:
+            return self.fsh.parse_commands()
+        except Exception:
+            return None
+
     def load_data(self) -> None:
         self.fsh = pyfsdb.Fsdb(file_handle=self.input_file)
         self.rows = []
@@ -31,3 +38,4 @@ class FsdbLoader():
 
     def column_names(self):
         return self.fsh.column_names
+
