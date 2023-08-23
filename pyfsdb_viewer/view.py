@@ -269,7 +269,12 @@ class FsdbView(App):
             saved_self.debug(f"running: {command_name} / {value}")
             saved_self.run_pipe([command_name, value])
 
+        def action_submit_noargs():
+            action_submit(None)
+            self.action_cancel()
+
         self.prompter = Input()
+        self.prompter.action_submit = action_submit_noargs
         self.mount_cmd_input_and_focus(
             self.prompter,
             prompt=prompt,
@@ -280,7 +285,7 @@ class FsdbView(App):
     def action_add_column(self):
         "add a new column to the data with pdbcolcreate"
 
-        self.run_command_with_arguments("dbcolcreate", "column name: ")
+        self.run_command_with_arguments("dbcolcreate", "Create a new column: ")
 
     def action_select_columns(self):
         "Allows a user to select a bunch of columns to display"
@@ -332,7 +337,7 @@ class FsdbView(App):
 
         self.save_info = Input()
         self.mount_cmd_input_and_focus(
-            self.save_info, "file name:", ok_callback=self.save_current
+            self.save_info, "Save data to file:", ok_callback=self.save_current
         )
 
     def action_remove_column(self):
@@ -346,16 +351,21 @@ class FsdbView(App):
         # TODO: allow passing of exact arguments in a list
         self.run_pipe(["dbcol"] + new_columns)
 
-    def run_entered_command(self, command):
-        self.run_pipe(self.command_input.value)
+    def run_input_enter(self):
+        self.run_entered_command(self.input_widget)
+        self.action_cancel()
+
+    def run_entered_command(self, input_widget):
+        self.run_pipe(self.input_widget.value)
 
     def action_pipe(self):
         "prompt for a command to run"
 
-        self.command_input = Input()
+        self.input_widget = Input()
+        self.input_widget.action_submit = self.run_input_enter
         self.mount_cmd_input_and_focus(
-            self.command_input,
-            "command: ",
+            self.input_widget,
+            "Pipe date through a command: ",
             ok_callback=self.run_entered_command,
         )
 
