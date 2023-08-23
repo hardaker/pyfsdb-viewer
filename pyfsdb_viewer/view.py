@@ -60,25 +60,34 @@ def parse_args():
     logging.basicConfig(level=log_level, format="%(levelname)-10s:\t%(message)s")
     return args
 
+def convert_bindings(binding_list):
+    "converts a set of tuples with extra information into a minimal binding set"
+    out = []
+    for binding in binding_list:
+        if isinstance(binding, tuple):
+            out.append((binding[0], binding[1], binding[2]))
+        else:
+            out.append(binding)
 
 class FsdbView(App):
     "FSDB File Viewer"
 
     CSS_PATH="pyfsdb_viewer.css"
-    BINDINGS=[("q", "cancel", "Close/Quit"),
-              ("?", "help", "Help"),
-              ("h", "show_history", "command History"),
-              ("a", "add_column", "Add column"),
-              ("d", "remove_column", "Delete column"),
-              ("c", "select_columns", "Select columns"),
-              ("f", "filter", "Filter"),
-              ("e", "eval", "Eval"),
-              ("|", "pipe", "add command"),
-              ("l", "load_more_data", "Load more"),
-              Binding("escape", "cancel", "Cancel", show="false"),
-              Binding("z", "show_debug_log", "Debug", show="false"),
-              ("s", "save", "Save"),
-              ("u", "undo", "Undo")]
+    KEYS=[("?", "help", "Help", "Display this help"),
+          ("q", "cancel", "Close/Quit", "Close the current dialog or Quit pdbview"),
+          ("a", "add_column", "Add column", "Add a new column to the table (uses dbcolcreate)"),
+          ("d", "remove_column", "Delete column", "Remove the current column from the table (uses dbcol)"),
+          ("c", "select_columns", "Select columns", "Select which columns to keep (uses dbcol)"),
+          ("h", "show_history", "command History", "Shows the command history that created the file"),
+          ("f", "filter", "Filter", "Filter the data (uses pdbrow)"),
+          ("e", "eval", "Eval", "Evaluate every row (uses pdbroweval)"),
+          ("|", "pipe", "add command", "Pass the data through any command"),
+          ("l", "load_more_data", "Load more", "Load more data if the display is truncated"),
+          Binding("escape", "cancel", "Cancel", show="false"),
+          Binding("z", "show_debug_log", "Debug", show="false"),
+          ("s", "save", "Save", "Save the current dataset as a new file"),
+          ("u", "undo", "Undo", "Undo the previous change (go backward in history)")]
+    BINDINGS=[(x[0], x[1], x[2]) if isinstance(x, tuple) else x for x in KEYS]
 
     def __init__(self, input_file, *args, **kwargs):
         self.input_file = open(input_file, "r")
@@ -190,9 +199,12 @@ class FsdbView(App):
     def action_help(self):
         tl = TextLog()
         tl.write("ESC:  exit a dialog box")
-        for n, binding in enumerate(self.BINDINGS):
+        for n, binding in enumerate(self.KEYS):
             if isinstance(binding, tuple):
-                tl.write(f"{binding[0] + ':':<4}  {binding[2]}")
+                helptext = binding[2]
+                if len(binding) > 3:
+                    helptext = binding[3]
+                tl.write(f"{binding[0] + ':':<4}  {helptext}")
         c = self.mount_cmd_input_and_focus(tl, "Help: (pres ESC to exit)")
         tl.styles.height = n+1
         c.styles.height = n+5
