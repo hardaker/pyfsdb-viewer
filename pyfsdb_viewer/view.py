@@ -212,6 +212,7 @@ class FsdbView(App):
         callback=None,
         ok_callback=None,
         class_name="entry_dialog",
+        widget_height = 0
     ):
         "binds a standard input box and mounts after history"
         self.current_widget = widget
@@ -275,8 +276,22 @@ class FsdbView(App):
         for column in self.data_table.ordered_columns:
             columns.append(Checkbox(str(column.label), disabled=False, value=True))
 
-        v = VerticalScroll(*columns)
-        c = self.mount_cmd_input_and_focus(v, "Select columns to display")
+        saved_self = self
+        def action_submit(self):
+            keep_columns = []
+            for column in columns:
+                if column.value:
+                    keep_columns.append(str(column.label))
+            saved_self.debug(f"keeping columns: {keep_columns}")
+
+            saved_self.run_pipe(["dbcol"] + keep_columns)
+
+        v = Vertical(*columns)
+        v.styles.height = len(columns)
+        c = self.mount_cmd_input_and_focus(v, "Select columns to display",
+                                           ok_callback=action_submit)
+        c.styles.height = len(columns) + 7
+        columns[0].focus()
 
     def action_filter(self):
         "apply a row filter with pdbrow"
