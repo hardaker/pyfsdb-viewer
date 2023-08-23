@@ -21,8 +21,11 @@ from textual.widgets import (
     Footer,
     TextLog,
     Input,
+    Checkbox
 )
-from textual.containers import Container, ScrollableContainer, Horizontal, Vertical
+
+from textual.containers import Container, ScrollableContainer, Horizontal, Vertical, VerticalScroll
+
 from textual.binding import Binding
 
 from dataloader import FsdbLoader
@@ -58,23 +61,6 @@ def parse_args():
     return args
 
 
-def run_command_with_arguments(parent_obj, command_name, prompt):
-    class RunCommandWithArguments(Input):
-        def __init__(self, base_parent, command_name, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.base_parent = base_parent
-            self.command_name = command_name
-            self.removeme = self
-
-        def action_submit(self):
-            command = self.value
-            self.base_parent.run_pipe([self.command_name, self.value])
-            self.removeme.remove()
-
-    prompter = RunCommandWithArguments(parent_obj, command_name)
-    prompter.removeme = parent_obj.mount_cmd_input_and_focus(prompter, prompt)
-
-
 class FsdbView(App):
     "FSDB File Viewer"
 
@@ -84,6 +70,7 @@ class FsdbView(App):
               ("h", "show_history", "command History"),
               ("a", "add_column", "Add column"),
               ("d", "remove_column", "Delete column"),
+              ("c", "select_columns", "Select columns"),
               ("f", "filter", "Filter"),
               ("e", "eval", "Eval"),
               ("|", "pipe", "add command"),
@@ -151,10 +138,6 @@ class FsdbView(App):
         self.action_load_more_data()
         self.ourtitle.update(self.loader.name)
 
-    def action_load_more_data(self) -> None:
-        added_rows = self.loader.load_more_data(self.rows, self.max_rows)
-        self.data_table.add_rows(added_rows)
-
     def on_mount(self) -> None:
         self.load_data()
         self.data_table.focus()
@@ -182,6 +165,14 @@ class FsdbView(App):
         if str(ok_button.control.label).lower() == "ok":
             self.debug("button here2: {ok_button.control.label}")
             self.ok_callback(ok_button)
+
+    #
+    # Actions from events
+    #
+
+    def action_load_more_data(self) -> None:
+        added_rows = self.loader.load_more_data(self.rows, self.max_rows)
+        self.data_table.add_rows(added_rows)
 
     def action_cancel(self):
         if self.current_input:
@@ -253,20 +244,49 @@ class FsdbView(App):
         self.current_input = container
         return container
 
+    def run_command_with_arguments(self, command_name, prompt):
+        "runs a given command after prompting for an input value"
+
+        saved_self = self
+        
+        def action_submit(self):
+            "callback with the value stored in the saved Input"
+            saved_self.debug(self)
+            value = saved_self.prompter.value
+            saved_self.debug(f"running: {command_name} / {value}")
+            saved_self.run_pipe([command_name, value])
+
+        self.prompter = Input()
+        self.mount_cmd_input_and_focus(
+            self.prompter,
+            prompt=prompt,
+            ok_callback=action_submit
+        )
+
+
     def action_add_column(self):
         "add a new column to the data with pdbcolcreate"
 
-        run_command_with_arguments(self, "dbcolcreate", "column name: ")
+        self.run_command_with_arguments("dbcolcreate", "column name: ")
+
+    def action_select_columns(self):
+        "Allows a user to select a bunch of columns to display"
+        columns = []
+        for column in self.data_table.ordered_columns:
+            columns.append(Checkbox(str(column.label), disabled=False, value=True))
+
+        v = VerticalScroll(*columns)
+        c = self.mount_cmd_input_and_focus(v, "Select columns to display")
 
     def action_filter(self):
         "apply a row filter with pdbrow"
 
-        run_command_with_arguments(self, "pdbrow", "pdbrow filter: ")
+        self.run_command_with_arguments("pdbrow", "pdbrow filter: ")
 
     def action_eval(self):
         "Evaluate rows with a pdbroweval expression"
 
-        run_command_with_arguments(self, "pdbroweval", "pdbroweval expr: ")
+        self.run_command_with_arguments("pdbroweval", "pdbroweval expr: ")
 
     def save_current(self, button):
         current = self.input_file
