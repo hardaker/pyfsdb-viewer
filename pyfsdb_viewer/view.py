@@ -28,7 +28,7 @@ from textual.containers import Container, ScrollableContainer, Horizontal, Verti
 
 from textual.binding import Binding
 
-from dataloader import FsdbLoader
+from pyfsdb_viewer.dataloader.fsdbloader import FsdbLoader
 
 def parse_args():
     "Parse the command line arguments."
@@ -261,7 +261,7 @@ class FsdbView(App):
         "runs a given command after prompting for an input value"
 
         saved_self = self
-        
+
         def action_submit(self):
             "callback with the value stored in the saved Input"
             saved_self.debug(self)
@@ -281,7 +281,6 @@ class FsdbView(App):
             ok_callback=action_submit
         )
 
-
     def action_add_column(self):
         "add a new column to the data with pdbcolcreate"
 
@@ -294,6 +293,7 @@ class FsdbView(App):
             columns.append(Checkbox(str(column.label), disabled=False, value=True))
 
         saved_self = self
+
         def action_submit(self):
             keep_columns = []
             for column in columns:

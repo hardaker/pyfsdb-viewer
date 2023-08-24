@@ -1,10 +1,10 @@
 import pyfsdb
 
-class DataLoaderBase():
-    def __init__(self):
-        pass
+from . import DataLoader
 
-class FsdbLoader():
+
+class FsdbLoader(DataLoader):
+    "loads data from an existing FSDB file"
     def __init__(self, input_file):
         super().__init__()
 
