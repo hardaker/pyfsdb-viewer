@@ -10,7 +10,7 @@ class FsdbLoader(DataLoader):
 
         self.input_file = input_file
         self.rows = []
-        self.fsh = None
+        self.fsh = pyfsdb.Fsdb(file_handle=self.input_file)
 
     @property
     def name(self):
@@ -24,7 +24,6 @@ class FsdbLoader(DataLoader):
             return None
 
     def load_data(self) -> None:
-        self.fsh = pyfsdb.Fsdb(file_handle=self.input_file)
         self.rows = []
 
     def load_more_data(self, current_rows, max_rows=128) -> None:
@@ -39,3 +38,9 @@ class FsdbLoader(DataLoader):
     def column_names(self):
         return self.fsh.column_names
 
+    def __iter__(self):
+        """Returns an iterator object for looping over from the current file."""
+        return self
+
+    def __next__(self):
+        return next(self.input_file)

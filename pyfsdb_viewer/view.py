@@ -29,6 +29,7 @@ from textual.containers import Container, ScrollableContainer, Horizontal, Verti
 from textual.binding import Binding
 
 from pyfsdb_viewer.dataloader.fsdbloader import FsdbLoader
+from pyfsdb_viewer.dataloader.processloader import ProcessLoader
 
 def parse_args():
     "Parse the command line arguments."
@@ -90,14 +91,14 @@ class FsdbView(App):
     BINDINGS=[(x[0], x[1], x[2]) if isinstance(x, tuple) else x for x in KEYS]
 
     def __init__(self, input_file, *args, **kwargs):
-        self.input_file = open(input_file, "r")
-        self.input_files = [input_file]
+        self.debug_log = []
+
+        self.loader = FsdbLoader(open(input_file, "r"))
+        self.input_files = [self.loader]
         self.added_comments = False
         self.current_input = None
         self.callback = None
         self.ok_callback = None
-        self.debug_log = []
-        self.loader = None
 
         self.max_rows = None
         if "max_rows" in kwargs:
@@ -124,7 +125,8 @@ class FsdbView(App):
     def compose(self) -> ComposeResult:
         self.header = Header()
 
-        self.ourtitle = Label(self.input_file.name, id="ourtitle")
+        self.debug(f"{self.loader}")
+        self.ourtitle = Label(self.loader.name, id="ourtitle")
 
         self.data_table = DataTable(fixed_rows=1, id="fsdbtable")
 
@@ -140,8 +142,9 @@ class FsdbView(App):
         self.load_data()
 
     def load_data(self) -> None:
-        self.loader = FsdbLoader(self.input_file)
+        "Creates a new FsdbLoader from the current input file and loads the view"
         self.loader.load_data()
+        self.debug(f"{self.loader} - {self.loader.name}")
         self.data_table.add_columns(*self.loader.column_names())
         self.rows = []
         self.action_load_more_data()
@@ -192,7 +195,7 @@ class FsdbView(App):
 
     def action_undo(self):
         self.input_files.pop()
-        self.input_file = open(self.input_files[-1], "r")
+        self.loader = self.input_files[-1]
         self.data_table.clear(columns=True)
         self.reload_data()
 
@@ -321,11 +324,10 @@ class FsdbView(App):
         self.run_command_with_arguments("pdbroweval", "pdbroweval expr: ")
 
     def save_current(self, button):
-        current = self.input_file
         path = str(self.save_info.value)
-        os.rename(self.input_files[-1], path)
-        self.input_file = path
-        self.input_files[-1] = path
+        os.rename(self.input_files[-1].name, path)
+        self.loader = FsdbLoader(path)
+        self.input_files[-1] = self.loader
         self.ourtitle.update(path)
 
     def action_save(self):
@@ -372,22 +374,13 @@ class FsdbView(App):
     def run_pipe(self, command_parts="dbcolcreate foo"):
         "Runs a new command on the data, and re-displays the output file"
 
-        if not isinstance(command_parts, list):
-            command_parts = shlex.split(command_parts)
+        self.loader = ProcessLoader(command_parts, self.loader.name)
 
-        try:
-            p = Popen(command_parts, stdout=PIPE, stdin=PIPE, stderr=PIPE)
+        # save the new temporary file name
+        self.input_files.append(self.loader)
 
-            # run the specified command
-            input_file = open(self.input_file.name, "r").read().encode()
-            output_data = p.communicate(input=input_file)
-            with tempfile.NamedTemporaryFile(delete=False) as tmp:
-                tmp.write(output_data[0])
-                self.input_files.append(tmp.name)
-                self.input_file = open(tmp.name, "r")
-            self.reload_data()
-        except Exception as e:
-            self.debug(f"failed with {e}")
+        # load it all up
+        self.reload_data()
 
     def action_show_debug_log(self):
         self.debug("showing debug log")
