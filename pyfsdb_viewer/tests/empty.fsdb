@@ -1,0 +1,2 @@
+#fsdb -F s a:d b:d c:d
+# | no output

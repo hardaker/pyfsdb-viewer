@@ -1,17 +1,18 @@
 import pyfsdb
 import shlex
 import tempfile
-import logging
 import time
 from queue import SimpleQueue as FifoQueue
 from concurrent.futures import ThreadPoolExecutor
 from subprocess import Popen, PIPE, STDOUT
+from logging import error
 
 from . import DataLoader
 
 
 class ProcessLoader(DataLoader):
     "Executes a process with a pipe to a new file and loads it at least in part"
+
     def __init__(self, command, input_file_name):
         super().__init__()
 
@@ -41,11 +42,11 @@ class ProcessLoader(DataLoader):
             output_data = p.communicate(input=input_file)
 
             self.debug(output_data, savefile="/tmp/debug-test.txt")
-            self.temp_file.write(output_data[0]) # save stdout to the file
+            self.temp_file.write(output_data[0])  # save stdout to the file
+            self.temp_file.close()
 
         except Exception as e:
-            self.debug(f"failed with {e}")
-            logging.error(f"failed with {e}")
+            error(f"failed with {e}")
 
     @property
     def name(self):
@@ -62,6 +63,11 @@ class ProcessLoader(DataLoader):
         except Exception:
             return None
 
+    @property
+    def column_names(self):
+        error("returning column names")
+        return self.fsh.column_names
+
     def load_data(self) -> None:
         self.fsh = pyfsdb.Fsdb(file_handle=self.temp_file_handle)
         self.rows = []
@@ -75,9 +81,6 @@ class ProcessLoader(DataLoader):
         current_rows.extend(more_rows)
         return more_rows
 
-    def column_names(self):
-        return self.fsh.column_names
-
     def __iter__(self):
         """Returns an iterator object for looping over from the current file."""
         if not self.filename and not self.file_handle:
@@ -87,4 +90,3 @@ class ProcessLoader(DataLoader):
 
     def __next__(self):
         return next(self.fsh)
-        
