@@ -65,7 +65,6 @@ class ProcessLoader(DataLoader):
 
     @property
     def column_names(self):
-        error("returning column names")
         return self.fsh.column_names
 
     def load_data(self) -> None:
