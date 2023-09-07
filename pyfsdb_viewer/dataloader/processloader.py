@@ -32,20 +32,23 @@ class ProcessLoader(DataLoader):
 
     def run_pipe(self, command):
         try:
-            p = Popen(self.command, stdout=PIPE, stdin=PIPE, stderr=PIPE)
-
-            # run the specified command
-            input_file = open(self.input_file_name, "r").read().encode()
+            p = Popen(
+                self.command,
+                stdout=PIPE,
+                stdin=open(self.input_file_name, "rb"),
+                stderr=PIPE,
+            )
 
             # this reads all data -- we need a better solution than this
             # need to do parallel reading and writing of data
-            output_data = p.communicate(input=input_file)
+            output_data = p.communicate()
 
             self.debug(output_data, savefile="/tmp/debug-test.txt")
             self.temp_file.write(output_data[0])  # save stdout to the file
             self.temp_file.close()
 
         except Exception as e:
+            self.debug(f"failed with {e}")
             error(f"failed with {e}")
 
     @property
