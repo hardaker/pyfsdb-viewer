@@ -111,3 +111,9 @@ class ProcessLoader(DataLoader):
 
     def __next__(self):
         return next(self.fsh)
+
+    def cleanup(self):
+        if self.sub_process and self.sub_process.poll() == None:
+            self.sub_process.terminate()
+        os.unlink(self.temp_file.name)
+        os.unlink(self.temp_errors.name)

@@ -203,7 +203,7 @@ class FsdbView(App):
             self.error("unknown button -- internal error")
 
     def action_exit(self):
-        self.exit()
+        self.clean_and_exit()
 
     def button_cancel(self, cancel_button):
         self.debug(cancel_button.control.label)
@@ -248,12 +248,17 @@ class FsdbView(App):
             self.data_table.add_rows([["!! EMPTY FILE !!"]])
             self.empty_table = True
 
+    def clean_and_exit(self):
+        for loader in self.input_files:
+            loader.cleanup()
+        self.exit()
+
     def action_cancel(self):
         if self.current_input:
             self.current_input.remove()
             self.current_input = None
         else:
-            self.exit()
+            self.clean_and_exit()
 
     def action_undo(self):
         self.input_files.pop()

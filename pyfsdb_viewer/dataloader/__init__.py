@@ -12,3 +12,6 @@ class DataLoader:
     @property
     def is_closed(self):
         return True
+
+    def cleanup(self):
+        pass
