@@ -2,6 +2,7 @@ import pyfsdb
 import shlex
 import tempfile
 import time
+import os
 from queue import SimpleQueue as FifoQueue
 from concurrent.futures import ThreadPoolExecutor
 from subprocess import Popen, PIPE, STDOUT
@@ -26,26 +27,39 @@ class ProcessLoader(DataLoader):
         self.input_file_name = input_file_name
         self.fsh = None
 
-        self.temp_file = tempfile.NamedTemporaryFile(delete=False)
+        self.temp_file = tempfile.NamedTemporaryFile(
+            delete=False, prefix="pdbview-stdout-"
+        )
+        self.temp_errors = tempfile.NamedTemporaryFile(
+            delete=False, prefix="pdbview-stderr-"
+        )
+
+        self.debug(f"command: {self.command}")
+        self.debug(f"stdout: {self.temp_file.name}")
+        self.debug(f"stderr: {self.temp_errors.name}")
 
         self.run_pipe(command)
 
     def run_pipe(self, command):
         try:
+            self.debug(f"commddd: {self.command}")
             p = Popen(
                 self.command,
-                stdout=PIPE,
-                stdin=open(self.input_file_name, "rb"),
-                stderr=PIPE,
+                stdout=self.temp_file,
+                stdin=open(self.input_file_name, "r"),
+                stderr=self.temp_errors,
+                text=True,
+                shell=False,
             )
 
-            # this reads all data -- we need a better solution than this
-            # need to do parallel reading and writing of data
-            output_data = p.communicate()
+            self.sub_process = p
 
-            self.debug(output_data, savefile="/tmp/debug-test.txt")
-            self.temp_file.write(output_data[0])  # save stdout to the file
-            self.temp_file.close()
+            stats = os.stat(self.temp_file.name)
+            while stats.st_size == 0:
+                time.sleep(0.01)
+                stats = os.stat(self.temp_file.name)
+
+            self.debug(stats)
 
         except Exception as e:
             self.debug(f"failed with {e}")
