@@ -241,7 +241,7 @@ class FsdbView(App):
             self.empty_table = False
 
         elif self.row_count == 0 and not self.loader.is_closed:
-            self.data_table.add_rows([["!! no data yet !!"]])
+            self.data_table.add_rows([["!! no data yet (use 'l' to load more) !!"]])
             self.empty_table = True
 
         elif self.row_count == 0:
