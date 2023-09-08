@@ -84,6 +84,11 @@ class ProcessLoader(DataLoader):
     def column_names(self):
         return self.fsh.column_names
 
+    @property
+    def is_closed(self):
+        self.poll_results = self.sub_process.poll()
+        return self.poll_results is not None
+
     def load_data(self) -> None:
         self.fsh = pyfsdb.Fsdb(file_handle=self.temp_file_handle)
         self.rows = []

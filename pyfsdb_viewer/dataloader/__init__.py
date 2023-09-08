@@ -8,3 +8,7 @@ class DataLoader:
     def debug(self, obj, savefile="/tmp/debug-lodaer.txt"):
         with open(savefile, "a") as d:
             d.write(str(obj) + "\n")
+
+    @property
+    def is_closed(self):
+        return True

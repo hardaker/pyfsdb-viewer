@@ -135,6 +135,8 @@ class FsdbView(App):
         self.current_input = None
         self.callback = None
         self.ok_callback = None
+        self.empty_table = False
+        self.row_count = 0
 
         self.max_rows = None
         if "max_rows" in kwargs:
@@ -174,7 +176,7 @@ class FsdbView(App):
         yield self.container
 
     def reload_data(self):
-        self.data_table.clear(columns=True)
+        self.clear(True)
         self.load_data()
 
     def load_data(self) -> None:
@@ -217,13 +219,34 @@ class FsdbView(App):
     # Actions from events
     #
 
-    def action_load_more_data(self) -> None:
+    def clear(self, clear_columns=False):
+        self.data_table.clear(columns=clear_columns)
+        self.row_count = 0
+        self.empty_table = True
+
+    def action_load_more_data(self, clear_data=False) -> None:
+
+        # note: the textual object count always returns 0, so we track rows ourselves
+        if self.empty_table or clear_data:
+            self.clear()
+
         added_rows = self.loader.load_more_data(self.rows, self.max_rows)
-        self.debug(f"adding rows: {len(added_rows)}")
+        self.debug(
+            f"adding {len(added_rows)} rows (closed={self.loader.is_closed}, current={self.row_count}"
+        )
+
         if len(added_rows) > 0:
             self.data_table.add_rows(added_rows)
-        else:
+            self.row_count += len(added_rows)
+            self.empty_table = False
+
+        elif self.row_count == 0 and not self.loader.is_closed:
+            self.data_table.add_rows([["!! no data yet !!"]])
+            self.empty_table = True
+
+        elif self.row_count == 0:
             self.data_table.add_rows([["!! EMPTY FILE !!"]])
+            self.empty_table = True
 
     def action_cancel(self):
         if self.current_input:
@@ -235,7 +258,7 @@ class FsdbView(App):
     def action_undo(self):
         self.input_files.pop()
         self.loader = self.input_files[-1]
-        self.data_table.clear(columns=True)
+        self.clear(True)
         self.reload_data()
 
     def action_help(self):
