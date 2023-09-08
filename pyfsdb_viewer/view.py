@@ -359,7 +359,10 @@ class FsdbView(App):
         "Allows a user to select a bunch of columns to display"
         columns = []
         for column in self.data_table.ordered_columns:
-            columns.append(Checkbox(str(column.label), disabled=False, value=True))
+            cbox = Checkbox(
+                str(column.label), disabled=False, value=True, classes="column-select"
+            )
+            columns.append(cbox)
 
         saved_self = self
 
@@ -373,11 +376,11 @@ class FsdbView(App):
             saved_self.run_pipe(["dbcol"] + keep_columns)
 
         v = Vertical(*columns)
-        v.styles.height = len(columns)
+        v.styles.height = len(columns) * 3
         c = self.mount_cmd_input_and_focus(
             v, "Select columns to display", ok_callback=action_submit
         )
-        c.styles.height = len(columns) + 7
+        c.styles.height = len(columns) * 3 + 8
         columns[0].focus()
 
     def action_filter(self):
@@ -468,7 +471,7 @@ class FsdbView(App):
             # this means pyfsdb couldn't get them
             self.history_log.write("[HISTORY UNAVAILABLE]")
         else:
-            for command in self.fsh.commands:
+            for command in self.loader.fsh.commands:
                 self.history_log.write(command)
 
         self.mount_cmd_input_and_focus(
