@@ -261,7 +261,8 @@ class FsdbView(App):
             self.clean_and_exit()
 
     def action_undo(self):
-        self.input_files.pop()
+        last_loader = self.input_files.pop()
+        last_loader.cleanup()
         self.loader = self.input_files[-1]
         self.clear(True)
         self.reload_data()
