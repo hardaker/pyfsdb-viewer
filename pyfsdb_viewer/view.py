@@ -371,10 +371,27 @@ class FsdbView(App):
             saved_self.run_pipe(["dbcol"] + keep_columns)
             saved_self.close_current_screen()
 
+        def action_disable(self):
+            for column in columns:
+                column.value = False
+
+        def action_enable(self):
+            for column in columns:
+                column.value = True
+
+        buttons = {
+            "Ok": action_submit,
+            "Check All": action_enable,
+            "Uncheck All": action_disable,
+            "Cancel": self.action_cancel,
+        }
+
         v = Vertical(*columns)
         v.styles.height = len(columns) * 3
         c = self.mount_and_focus(
-            v, "Select columns to display", ok_callback=action_submit
+            v,
+            "Select columns to display",
+            buttons=buttons,
         )
         c.styles.height = len(columns) * 3 + 8
         columns[0].focus()
