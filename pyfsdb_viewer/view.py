@@ -132,9 +132,7 @@ class FsdbView(App):
         self.loader = FsdbLoader(open(input_file, "r"))
         self.input_files = [self.loader]
         self.added_comments = False
-        self.current_input = None
-        self.callback = None
-        self.ok_callback = None
+        self.current_screen = None
         self.empty_table = False
         self.row_count = 0
 
@@ -192,9 +190,9 @@ class FsdbView(App):
 
     def close_current_screen(self):
         self.buttons = None
-        if self.current_input:
-            self.current_input.remove()
-            self.current_input = None
+        if self.current_screen:
+            self.current_screen.remove()
+            self.current_screen = None
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if self.buttons:
@@ -253,9 +251,9 @@ class FsdbView(App):
         self.exit()
 
     def action_cancel(self, event=None):
-        if self.current_input:
-            self.current_input.remove()
-            self.current_input = None
+        if self.current_screen:
+            self.current_screen.remove()
+            self.current_screen = None
         else:
             self.clean_and_exit()
 
@@ -296,6 +294,9 @@ class FsdbView(App):
         widget_height=0,
     ):
         "binds a standard input box and mounts after history"
+
+        self.close_current_screen()  # close anything existing
+
         self.current_widget = widget
         self.label = Label(prompt, classes="entry_label")
 
@@ -318,7 +319,7 @@ class FsdbView(App):
 
         # and focus the keyboard toward it
         widget.focus()
-        self.current_input = container
+        self.current_screen = container
         self.buttons = buttons
         self.debug(f"buttons: {self.buttons}")
         return container
@@ -370,6 +371,7 @@ class FsdbView(App):
             saved_self.debug(f"keeping columns: {keep_columns}")
 
             saved_self.run_pipe(["dbcol"] + keep_columns)
+            saved_self.close_current_screen()
 
         v = Vertical(*columns)
         v.styles.height = len(columns) * 3
