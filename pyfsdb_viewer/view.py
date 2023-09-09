@@ -332,7 +332,6 @@ class FsdbView(App):
 
         def action_submit_noargs():
             action_submit(None)
-            self.action_cancel()
 
         self.prompter = Input()
         self.prompter.action_submit = action_submit_noargs
@@ -430,8 +429,9 @@ class FsdbView(App):
         self.run_pipe(["dbcol"] + new_columns)
 
     def run_input_enter(self):
+        self.debug("in input_enter")
         self.run_entered_command(self.input_widget)
-        self.action_cancel()
+        self.debug("leaving input_enter")
 
     def run_entered_command(self, input_widget):
         self.run_pipe(self.input_widget.value)
