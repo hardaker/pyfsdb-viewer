@@ -277,13 +277,6 @@ class FsdbView(App):
         tl.styles.height = n + 1
         c.styles.height = n + 5
 
-    def action_remove_row(self, event=None):
-        row_id, _ = self.data_table.coordinate_to_cell_key(
-            self.data_table.cursor_coordinate
-        )
-
-        self.data_table.remove_row(row_id)
-
     def mount_and_focus(
         self,
         widget,
