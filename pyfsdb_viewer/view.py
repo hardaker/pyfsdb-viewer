@@ -146,7 +146,7 @@ class FsdbView(App):
     def error(self, err_string, prompt="error: "):
         "displays an error message (will be a dialog box)"
         lab = Label(err_string)
-        self.mount_cmd_input_and_focus(
+        self.mount_and_focus(
             lab,
             prompt=prompt,
             buttons={"Close": self.action_cancel()},
@@ -273,7 +273,7 @@ class FsdbView(App):
                 if len(binding) > 3:
                     helptext = binding[3]
                 tl.write(f"{binding[0] + ':':<4}  {helptext}")
-        c = self.mount_cmd_input_and_focus(tl, "Help: (pres ESC to exit)")
+        c = self.mount_and_focus(tl, "Help: (pres ESC to exit)")
         tl.styles.height = n + 1
         c.styles.height = n + 5
 
@@ -284,7 +284,7 @@ class FsdbView(App):
 
         self.data_table.remove_row(row_id)
 
-    def mount_cmd_input_and_focus(
+    def mount_and_focus(
         self,
         widget,
         prompt="argument: ",
@@ -343,9 +343,7 @@ class FsdbView(App):
 
         self.prompter = Input()
         self.prompter.action_submit = action_submit_noargs
-        self.mount_cmd_input_and_focus(
-            self.prompter, prompt=prompt, ok_callback=action_submit
-        )
+        self.mount_and_focus(self.prompter, prompt=prompt, ok_callback=action_submit)
 
     def action_add_column(self):
         "add a new column to the data with pdbcolcreate"
@@ -375,7 +373,7 @@ class FsdbView(App):
 
         v = Vertical(*columns)
         v.styles.height = len(columns) * 3
-        c = self.mount_cmd_input_and_focus(
+        c = self.mount_and_focus(
             v, "Select columns to display", ok_callback=action_submit
         )
         c.styles.height = len(columns) * 3 + 8
@@ -406,7 +404,7 @@ class FsdbView(App):
             return
 
         self.save_info = Input()
-        self.mount_cmd_input_and_focus(
+        self.mount_and_focus(
             self.save_info, "Save data to file:", ok_callback=self.save_current
         )
 
@@ -433,7 +431,7 @@ class FsdbView(App):
 
         self.input_widget = Input()
         self.input_widget.action_submit = self.run_input_enter
-        self.mount_cmd_input_and_focus(
+        self.mount_and_focus(
             self.input_widget,
             "Pipe date through a command: ",
             ok_callback=self.run_entered_command,
@@ -455,7 +453,7 @@ class FsdbView(App):
         self.debug_log_ui = TextLog(id="debug_log")
         for line in self.debug_log:
             self.debug_log_ui.write(line)
-        self.mount_cmd_input_and_focus(
+        self.mount_and_focus(
             self.debug_log_ui, class_name="text_dialog", buttons=["Close"]
         )
 
@@ -472,7 +470,7 @@ class FsdbView(App):
             for command in self.loader.fsh.commands:
                 self.history_log.write(command)
 
-        self.mount_cmd_input_and_focus(
+        self.mount_and_focus(
             self.history_log, class_name="text_dialog", buttons=["Close"]
         )
 
