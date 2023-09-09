@@ -151,8 +151,7 @@ class FsdbView(App):
         self.mount_cmd_input_and_focus(
             lab,
             prompt=prompt,
-            buttons=["Close"],
-            callback=self.button_cancel,
+            buttons={"Close": self.action_cancel()},
         )
 
     def debug(self, obj, location="/tmp/debug.txt"):
@@ -191,29 +190,29 @@ class FsdbView(App):
         self.load_data()
         self.data_table.focus()
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if self.callback:
-            self.debug(event)
-            self.callback(event)
-            self.callback = None
-            if self.current_input:
-                self.current_input.remove()
+    def close_current_screen(self):
+        self.buttons = None
+        if self.current_input:
+            self.current_input.remove()
             self.current_input = None
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if self.buttons:
+            button_label = str(event.control.label)
+            if button_label in self.buttons:
+                self.debug(f"callback for {button_label}")
+                if self.buttons[button_label]:
+                    self.debug(f"no callback defined for for {button_label}")
+                    self.buttons[button_label](event)
+            else:
+                self.debug(f"failed to find callback for {button_label}")
+                self.close_current_screen()  # default is close
+
         else:
-            self.error("unknown button -- internal error")
+            self.error("no buttons/actions were defined")
 
     def action_exit(self):
         self.clean_and_exit()
-
-    def button_cancel(self, cancel_button):
-        self.debug(cancel_button.control.label)
-        self.action_cancel()
-
-    def button_ok_or_cancel(self, ok_button):
-        self.debug("button here: {ok_button.control.label}")
-        if str(ok_button.control.label).lower() == "ok":
-            self.debug("button here2: {ok_button.control.label}")
-            self.ok_callback(ok_button)
 
     #
     # Actions from events
@@ -253,21 +252,21 @@ class FsdbView(App):
             loader.cleanup()
         self.exit()
 
-    def action_cancel(self):
+    def action_cancel(self, event=None):
         if self.current_input:
             self.current_input.remove()
             self.current_input = None
         else:
             self.clean_and_exit()
 
-    def action_undo(self):
+    def action_undo(self, event=None):
         last_loader = self.input_files.pop()
         last_loader.cleanup()
         self.loader = self.input_files[-1]
         self.clear(True)
         self.reload_data()
 
-    def action_help(self):
+    def action_help(self, event=None):
         tl = TextLog()
         tl.write("ESC:  exit a dialog box")
         for n, binding in enumerate(self.KEYS):
@@ -280,7 +279,7 @@ class FsdbView(App):
         tl.styles.height = n + 1
         c.styles.height = n + 5
 
-    def action_remove_row(self):
+    def action_remove_row(self, event=None):
         row_id, _ = self.data_table.coordinate_to_cell_key(
             self.data_table.cursor_coordinate
         )
@@ -291,8 +290,7 @@ class FsdbView(App):
         self,
         widget,
         prompt="argument: ",
-        buttons=[],
-        callback=None,
+        buttons={},
         ok_callback=None,
         class_name="entry_dialog",
         widget_height=0,
@@ -303,14 +301,9 @@ class FsdbView(App):
 
         container = Vertical(self.label, widget, classes=class_name)
 
-        self.callback = callback
-        self.ok_callback = ok_callback
-        if not self.callback and self.ok_callback:
-            self.callback = self.button_ok_or_cancel
-
         # use default buttons if the ok_callback was created
-        if len(buttons) == 0 and self.ok_callback:
-            buttons = ["Ok", "Cancel"]
+        if len(buttons) == 0 and ok_callback:
+            buttons = {"Ok": ok_callback, "Cancel": self.action_cancel}
 
         if len(buttons) > 0:
             button_horiz = Horizontal(classes="entry_button_row")
@@ -326,6 +319,8 @@ class FsdbView(App):
         # and focus the keyboard toward it
         widget.focus()
         self.current_input = container
+        self.buttons = buttons
+        self.debug(f"buttons: {self.buttons}")
         return container
 
     def run_command_with_arguments(self, command_name, prompt):
@@ -339,6 +334,7 @@ class FsdbView(App):
             value = saved_self.prompter.value
             saved_self.debug(f"running: {command_name} / {value}")
             saved_self.run_pipe([command_name, value])
+            saved_self.close_current_screen()
 
         def action_submit_noargs():
             action_submit(None)
