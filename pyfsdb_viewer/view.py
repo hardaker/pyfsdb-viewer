@@ -404,6 +404,7 @@ class FsdbView(App):
         self.loader = FsdbLoader(path)
         self.input_files[-1] = self.loader
         self.ourtitle.update(path)
+        self.close_current_screen()
 
     def action_save(self):
         "saves the current contents to a new file"
