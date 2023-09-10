@@ -163,7 +163,7 @@ class FsdbView(App):
         self.debug(f"{self.loader}")
         self.ourtitle = Label(self.loader.name, id="ourtitle")
 
-        self.data_table = DataTable(fixed_rows=1, id="fsdbtable")
+        self.data_table = DataTable(fixed_rows=0, id="fsdbtable")
 
         self.footer = Footer()
 
