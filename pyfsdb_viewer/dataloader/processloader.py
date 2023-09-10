@@ -55,7 +55,7 @@ class ProcessLoader(DataLoader):
             self.sub_process = p
 
             stats = os.stat(self.temp_file.name)
-            while stats.st_size == 0:
+            while stats.st_size == 0 and not self.is_closed:
                 time.sleep(0.01)
                 stats = os.stat(self.temp_file.name)
 
