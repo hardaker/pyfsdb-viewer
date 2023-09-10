@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 from subprocess import Popen, PIPE, STDOUT
 import shlex
+from shutil import copyfile
 
 from textual.app import App, ComposeResult
 from textual.widgets import (
@@ -398,24 +399,35 @@ class FsdbView(App):
 
         self.run_command_with_arguments("pdbroweval", "pdbroweval expr: ")
 
-    def save_current(self, button):
-        path = str(self.save_info.value)
-        os.rename(self.input_files[-1].name, path)
-        self.loader = FsdbLoader(path)
-        self.input_files[-1] = self.loader
-        self.ourtitle.update(path)
-        self.close_current_screen()
-
     def action_save(self):
         "saves the current contents to a new file"
+
+        saved_self = self
+
+        def save_current(button=None):
+            "renames the current file, or copies it if renaming isn't possible"
+            new_path = str(saved_self.save_info.value)
+
+            # try to rename it (ie, just move it)
+            try:
+                os.rename(saved_self.input_files[-1].name, new_path)
+            except Exception:
+                # otherwise copy it
+                copyfile(saved_self.input_files[-1].name, new_path)
+
+            saved_self.loader = FsdbLoader(new_path)
+            saved_self.input_files[-1] = saved_self.loader
+            saved_self.ourtitle.update(new_path)
+            saved_self.close_current_screen()
 
         if len(self.input_files) == 1:
             self.error("Cannot rename the unmodified original file")
             return
 
         self.save_info = Input()
+        self.save_info.action_submit = save_current
         self.mount_and_focus(
-            self.save_info, "Save data to file:", ok_callback=self.save_current
+            self.save_info, "Save data to file:", ok_callback=save_current
         )
 
     def action_remove_column(self):
