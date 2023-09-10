@@ -26,6 +26,7 @@ class ProcessLoader(DataLoader):
         self.queue = None
         self.input_file_name = input_file_name
         self.fsh = None
+        self.sub_process = None
 
         self.temp_file = tempfile.NamedTemporaryFile(
             delete=False, prefix="pdbview-stdout-"
@@ -61,9 +62,13 @@ class ProcessLoader(DataLoader):
 
             self.debug(stats)
 
+            self.debug(f"{self.is_closed} and {p.returncode}")
+            if self.is_closed and p.returncode != 0:
+                error("command failed")
+
         except Exception as e:
-            self.debug(f"failed with {e}")
-            error(f"failed with {e}")
+            self.debug(f"{command} failed with {e}")
+            raise e
 
     @property
     def name(self):

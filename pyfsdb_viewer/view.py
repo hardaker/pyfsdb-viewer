@@ -150,7 +150,7 @@ class FsdbView(App):
         self.mount_and_focus(
             lab,
             prompt=prompt,
-            buttons={"Close": self.action_cancel()},
+            buttons={"Close": self.action_cancel},
         )
 
     def debug(self, obj, location="/tmp/debug.txt"):
@@ -179,8 +179,20 @@ class FsdbView(App):
 
     def load_data(self) -> None:
         "Creates a new FsdbLoader from the current input file and loads the view"
-        self.loader.load_data()
-        self.data_table.add_columns(*self.loader.column_names)
+        try:
+            self.loader.load_data()
+        except Exception:
+            self.error("failed")
+            return
+
+        try:
+            columns = self.loader.column_names
+        except Exception:
+            # this could have failed on an empty file (at least)
+            self.error("failed to get column data")
+            return
+
+        self.data_table.add_columns(*columns)
         self.rows = []
         self.action_load_more_data()
         self.ourtitle.update(self.loader.name)
@@ -199,10 +211,11 @@ class FsdbView(App):
         if self.buttons:
             button_label = str(event.control.label)
             if button_label in self.buttons:
-                self.debug(f"callback for {button_label}")
+                self.debug(f"callback for {button_label} in {self.buttons}")
                 if self.buttons[button_label]:
-                    self.debug(f"no callback defined for for {button_label}")
                     self.buttons[button_label](event)
+                else:
+                    self.debug(f"no callback defined for for {button_label}")
             else:
                 self.debug(f"failed to find callback for {button_label}")
                 self.close_current_screen()  # default is close
@@ -253,8 +266,7 @@ class FsdbView(App):
 
     def action_cancel(self, event=None):
         if self.current_screen:
-            self.current_screen.remove()
-            self.current_screen = None
+            self.close_current_screen()
         else:
             self.clean_and_exit()
 
@@ -315,7 +327,7 @@ class FsdbView(App):
         widget.focus()
         self.current_screen = container
         self.buttons = buttons
-        self.debug(f"buttons: {self.buttons}")
+        self.debug(f"storing buttons: {self.buttons}")
         return container
 
     def run_command_with_arguments(self, command_name, prompt):
@@ -328,8 +340,8 @@ class FsdbView(App):
             saved_self.debug(self)
             value = saved_self.prompter.value
             saved_self.debug(f"running: {command_name} / {value}")
-            saved_self.run_pipe([command_name, value])
-            saved_self.close_current_screen()
+            if saved_self.run_pipe([command_name, value]):
+                saved_self.close_current_screen()
 
         def action_submit_noargs():
             action_submit(None)
@@ -361,8 +373,8 @@ class FsdbView(App):
                     keep_columns.append(str(column.label))
             saved_self.debug(f"keeping columns: {keep_columns}")
 
-            saved_self.run_pipe(["dbcol"] + keep_columns)
-            saved_self.close_current_screen()
+            if saved_self.run_pipe(["dbcol"] + keep_columns):
+                saved_self.close_current_screen()
 
         def action_disable(self):
             for column in columns:
@@ -447,8 +459,8 @@ class FsdbView(App):
         saved_self = self
 
         def run_entered_full_command(input_widget=None):
-            self.run_pipe(saved_self.input_widget.value)
-            saved_self.close_current_screen()
+            if self.run_pipe(saved_self.input_widget.value):
+                saved_self.close_current_screen()
 
         self.input_widget = Input()
         self.input_widget.action_submit = run_entered_full_command
