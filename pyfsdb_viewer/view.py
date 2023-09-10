@@ -459,16 +459,24 @@ class FsdbView(App):
             ok_callback=run_entered_full_command,
         )
 
-    def run_pipe(self, command_parts="dbcolcreate foo"):
+    def run_pipe(self, command_parts="dbcolcreate foo") -> bool:
         "Runs a new command on the data, and re-displays the output file"
 
-        self.loader = ProcessLoader(command_parts, self.loader.name)
+        try:
+            self.loader = ProcessLoader(command_parts, self.loader.name)
+        except Exception:
+            self.debug("displaying error")
+            self.error("process failed")
+            self.debug("ending displaying")
+            return False
 
         # save the new temporary file name
         self.input_files.append(self.loader)
 
         # load it all up
         self.reload_data()
+
+        return True
 
     def action_show_debug_log(self):
         self.debug("showing debug log")
