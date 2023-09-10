@@ -428,23 +428,22 @@ class FsdbView(App):
         # TODO: allow passing of exact arguments in a list
         self.run_pipe(["dbcol"] + new_columns)
 
-    def run_input_enter(self):
-        self.debug("in input_enter")
-        self.run_entered_command(self.input_widget)
-        self.debug("leaving input_enter")
-
-    def run_entered_command(self, input_widget):
-        self.run_pipe(self.input_widget.value)
-
     def action_pipe(self):
         "prompt for a command to run"
 
+        saved_self = self
+
+        def run_entered_full_command(input_widget=None):
+            self.run_pipe(saved_self.input_widget.value)
+            saved_self.close_current_screen()
+
         self.input_widget = Input()
-        self.input_widget.action_submit = self.run_input_enter
+        self.input_widget.action_submit = run_entered_full_command
+
         self.mount_and_focus(
             self.input_widget,
             "Pipe date through a command: ",
-            ok_callback=self.run_entered_command,
+            ok_callback=run_entered_full_command,
         )
 
     def run_pipe(self, command_parts="dbcolcreate foo"):
