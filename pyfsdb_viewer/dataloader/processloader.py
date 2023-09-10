@@ -64,7 +64,10 @@ class ProcessLoader(DataLoader):
 
             self.debug(f"{self.is_closed} and {p.returncode}")
             if self.is_closed and p.returncode != 0:
-                error("command failed")
+                p_stderr = open(self.temp_errors.name, "r").read()
+                raise ValueError(
+                    f"command failed with exit code {p.returncode}\n\n{p_stderr}"
+                )
 
         except Exception as e:
             self.debug(f"{command} failed with {e}")

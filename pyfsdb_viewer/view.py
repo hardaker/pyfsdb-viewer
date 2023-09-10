@@ -151,6 +151,7 @@ class FsdbView(App):
             lab,
             prompt=prompt,
             buttons={"Close": self.action_cancel},
+            widget_height=len(err_string.split("\n")),
         )
 
     def debug(self, obj, location="/tmp/debug.txt"):
@@ -321,6 +322,8 @@ class FsdbView(App):
             container.compose_add_child(button_horiz)
 
         # show the new widget after the history
+        if widget_height:
+            container.styles.height = widget_height + 7
         self.mount(container)
 
         # and focus the keyboard toward it
@@ -328,6 +331,7 @@ class FsdbView(App):
         self.current_screen = container
         self.buttons = buttons
         self.debug(f"storing buttons: {self.buttons}")
+
         return container
 
     def run_command_with_arguments(self, command_name, prompt):
@@ -476,9 +480,9 @@ class FsdbView(App):
 
         try:
             self.loader = ProcessLoader(command_parts, self.loader.name)
-        except Exception:
+        except Exception as e:
             self.debug("displaying error")
-            self.error("process failed")
+            self.error(f"process failed:\n\n {e}")
             self.debug("ending displaying")
             return False
 
