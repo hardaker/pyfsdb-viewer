@@ -513,8 +513,11 @@ class FsdbView(App):
             # this means pyfsdb couldn't get them
             self.history_log = "[HISTORY UNAVAILABLE]"
         else:
-            for command in self.loader.fsh.commands:
+            for n, command in enumerate(self.loader.fsh.commands):
                 self.history_log += f"{command}\n"
+                if n >= 20:
+                    self.history_log += f"\n[HISTORY TRUNCATED]"
+                    break
 
         self.error(self.history_log, prompt="FSDB History")
 
