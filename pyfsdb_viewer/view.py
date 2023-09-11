@@ -507,18 +507,16 @@ class FsdbView(App):
         "show's the command history that created the file"
 
         self.debug("showing history")
-        self.history_log = TextLog(id="history")
+        self.history_log = ""
 
         if self.loader.commands is None:
             # this means pyfsdb couldn't get them
-            self.history_log.write("[HISTORY UNAVAILABLE]")
+            self.history_log = "[HISTORY UNAVAILABLE]"
         else:
             for command in self.loader.fsh.commands:
-                self.history_log.write(command)
+                self.history_log += f"{command}\n"
 
-        self.mount_and_focus(
-            self.history_log, class_name="text_dialog", buttons=["Close"]
-        )
+        self.error(self.history_log, prompt="FSDB History")
 
 
 def main():
