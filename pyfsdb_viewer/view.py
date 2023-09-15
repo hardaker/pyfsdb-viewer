@@ -3,6 +3,7 @@
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import os
 import logging
+from shutil import copyfile
 
 from textual.app import App, ComposeResult
 from textual.widgets import (
@@ -124,9 +125,9 @@ class FsdbView(App):
         self.loader = FsdbLoader(open(input_file, "r"))
         self.input_files = [self.loader]
         self.added_comments = False
-        self.current_input = None
-        self.callback = None
-        self.ok_callback = None
+        self.current_screen = None
+        self.empty_table = False
+        self.row_count = 0
 
         self.max_rows = None
         if "max_rows" in kwargs:
@@ -138,16 +139,16 @@ class FsdbView(App):
     def error(self, err_string, prompt="error: "):
         "displays an error message (will be a dialog box)"
         lab = Label(err_string)
-        self.mount_cmd_input_and_focus(
+        self.mount_and_focus(
             lab,
             prompt=prompt,
-            buttons=["Close"],
-            callback=self.button_cancel,
+            buttons={"Close": self.action_cancel},
+            widget_height=len(err_string.split("\n")),
         )
 
-    def debug(self, obj):
+    def debug(self, obj, location="/tmp/debug.txt"):
         self.debug_log.append(str(obj))
-        with open("/tmp/debug.txt", "w") as d:
+        with open(location, "a") as d:
             d.write(str(obj) + "\n")
 
     def compose(self) -> ComposeResult:
@@ -156,7 +157,7 @@ class FsdbView(App):
         self.debug(f"{self.loader}")
         self.ourtitle = Label(self.loader.name, id="ourtitle")
 
-        self.data_table = DataTable(fixed_rows=1, id="fsdbtable")
+        self.data_table = DataTable(fixed_rows=0, id="fsdbtable")
 
         self.footer = Footer()
 
@@ -166,14 +167,25 @@ class FsdbView(App):
         yield self.container
 
     def reload_data(self):
-        self.data_table.clear(columns=True)
+        self.clear(True)
         self.load_data()
 
     def load_data(self) -> None:
         "Creates a new FsdbLoader from the current input file and loads the view"
-        self.loader.load_data()
-        self.debug(f"{self.loader} - {self.loader.name}")
-        self.data_table.add_columns(*self.loader.column_names())
+        try:
+            self.loader.load_data()
+        except Exception:
+            self.error("failed")
+            return
+
+        try:
+            columns = self.loader.column_names
+        except Exception:
+            # this could have failed on an empty file (at least)
+            self.error("failed to get column data")
+            return
+
+        self.data_table.add_columns(*columns)
         self.rows = []
         self.action_load_more_data()
         self.ourtitle.update(self.loader.name)
@@ -182,52 +194,83 @@ class FsdbView(App):
         self.load_data()
         self.data_table.focus()
 
+    def close_current_screen(self):
+        self.buttons = None
+        if self.current_screen:
+            self.current_screen.remove()
+            self.current_screen = None
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if self.callback:
-            self.debug(event)
-            self.callback(event)
-            self.callback = None
-            if self.current_input:
-                self.current_input.remove()
-            self.current_input = None
+        if self.buttons:
+            button_label = str(event.control.label)
+            if button_label in self.buttons:
+                self.debug(f"callback for {button_label} in {self.buttons}")
+                if self.buttons[button_label]:
+                    self.buttons[button_label](event)
+                else:
+                    self.debug(f"no callback defined for for {button_label}")
+            else:
+                self.debug(f"failed to find callback for {button_label}")
+                self.close_current_screen()  # default is close
+
         else:
-            self.error("unknown button -- internal error")
+            self.error("no buttons/actions were defined")
 
     def action_exit(self):
-        self.exit()
-
-    def button_cancel(self, cancel_button):
-        self.debug(cancel_button.control.label)
-        self.action_cancel()
-
-    def button_ok_or_cancel(self, ok_button):
-        self.debug("button here: {ok_button.control.label}")
-        if str(ok_button.control.label).lower() == "ok":
-            self.debug("button here2: {ok_button.control.label}")
-            self.ok_callback(ok_button)
+        self.clean_and_exit()
 
     #
     # Actions from events
     #
 
-    def action_load_more_data(self) -> None:
+    def clear(self, clear_columns=False):
+        self.data_table.clear(columns=clear_columns)
+        self.row_count = 0
+        self.empty_table = True
+
+    def action_load_more_data(self, clear_data=False) -> None:
+
+        # note: the textual object count always returns 0, so we track rows ourselves
+        if self.empty_table or clear_data:
+            self.clear()
+
         added_rows = self.loader.load_more_data(self.rows, self.max_rows)
-        self.data_table.add_rows(added_rows)
+        self.debug(
+            f"adding {len(added_rows)} rows (closed={self.loader.is_closed}, current={self.row_count}"
+        )
 
-    def action_cancel(self):
-        if self.current_input:
-            self.current_input.remove()
-            self.current_input = None
+        if len(added_rows) > 0:
+            self.data_table.add_rows(added_rows)
+            self.row_count += len(added_rows)
+            self.empty_table = False
+
+        elif self.row_count == 0 and not self.loader.is_closed:
+            self.data_table.add_rows([["!! no data yet (use 'l' to load more) !!"]])
+            self.empty_table = True
+
+        elif self.row_count == 0:
+            self.data_table.add_rows([["!! EMPTY FILE !!"]])
+            self.empty_table = True
+
+    def clean_and_exit(self):
+        for loader in self.input_files:
+            loader.cleanup()
+        self.exit()
+
+    def action_cancel(self, event=None):
+        if self.current_screen:
+            self.close_current_screen()
         else:
-            self.exit()
+            self.clean_and_exit()
 
-    def action_undo(self):
-        self.input_files.pop()
+    def action_undo(self, event=None):
+        last_loader = self.input_files.pop()
+        last_loader.cleanup()
         self.loader = self.input_files[-1]
-        self.data_table.clear(columns=True)
+        self.clear(True)
         self.reload_data()
 
-    def action_help(self):
+    def action_help(self, event=None):
         tl = TextLog()
         tl.write("ESC:  exit a dialog box")
         for n, binding in enumerate(self.KEYS):
@@ -236,41 +279,31 @@ class FsdbView(App):
                 if len(binding) > 3:
                     helptext = binding[3]
                 tl.write(f"{binding[0] + ':':<4}  {helptext}")
-        c = self.mount_cmd_input_and_focus(tl, "Help: (pres ESC to exit)")
+        c = self.mount_and_focus(tl, "Help: (pres ESC to exit)")
         tl.styles.height = n + 1
         c.styles.height = n + 5
 
-    def action_remove_row(self):
-        row_id, _ = self.data_table.coordinate_to_cell_key(
-            self.data_table.cursor_coordinate
-        )
-
-        self.data_table.remove_row(row_id)
-
-    def mount_cmd_input_and_focus(
+    def mount_and_focus(
         self,
         widget,
         prompt="argument: ",
-        buttons=[],
-        callback=None,
+        buttons={},
         ok_callback=None,
         class_name="entry_dialog",
         widget_height=0,
     ):
         "binds a standard input box and mounts after history"
+
+        self.close_current_screen()  # close anything existing
+
         self.current_widget = widget
         self.label = Label(prompt, classes="entry_label")
 
         container = Vertical(self.label, widget, classes=class_name)
 
-        self.callback = callback
-        self.ok_callback = ok_callback
-        if not self.callback and self.ok_callback:
-            self.callback = self.button_ok_or_cancel
-
         # use default buttons if the ok_callback was created
-        if len(buttons) == 0 and self.ok_callback:
-            buttons = ["Ok", "Cancel"]
+        if len(buttons) == 0 and ok_callback:
+            buttons = {"Ok": ok_callback, "Cancel": self.action_cancel}
 
         if len(buttons) > 0:
             button_horiz = Horizontal(classes="entry_button_row")
@@ -281,11 +314,16 @@ class FsdbView(App):
             container.compose_add_child(button_horiz)
 
         # show the new widget after the history
+        if widget_height:
+            container.styles.height = widget_height + 7
         self.mount(container)
 
         # and focus the keyboard toward it
         widget.focus()
-        self.current_input = container
+        self.current_screen = container
+        self.buttons = buttons
+        self.debug(f"storing buttons: {self.buttons}")
+
         return container
 
     def run_command_with_arguments(self, command_name, prompt):
@@ -298,17 +336,15 @@ class FsdbView(App):
             saved_self.debug(self)
             value = saved_self.prompter.value
             saved_self.debug(f"running: {command_name} / {value}")
-            saved_self.run_pipe([command_name, value])
+            if saved_self.run_pipe([command_name, value]):
+                saved_self.close_current_screen()
 
         def action_submit_noargs():
             action_submit(None)
-            self.action_cancel()
 
         self.prompter = Input()
         self.prompter.action_submit = action_submit_noargs
-        self.mount_cmd_input_and_focus(
-            self.prompter, prompt=prompt, ok_callback=action_submit
-        )
+        self.mount_and_focus(self.prompter, prompt=prompt, ok_callback=action_submit)
 
     def action_add_column(self):
         "add a new column to the data with pdbcolcreate"
@@ -319,7 +355,10 @@ class FsdbView(App):
         "Allows a user to select a bunch of columns to display"
         columns = []
         for column in self.data_table.ordered_columns:
-            columns.append(Checkbox(str(column.label), disabled=False, value=True))
+            cbox = Checkbox(
+                str(column.label), disabled=False, value=True, classes="column-select"
+            )
+            columns.append(cbox)
 
         saved_self = self
 
@@ -330,14 +369,32 @@ class FsdbView(App):
                     keep_columns.append(str(column.label))
             saved_self.debug(f"keeping columns: {keep_columns}")
 
-            saved_self.run_pipe(["dbcol"] + keep_columns)
+            if saved_self.run_pipe(["dbcol"] + keep_columns):
+                saved_self.close_current_screen()
+
+        def action_disable(self):
+            for column in columns:
+                column.value = False
+
+        def action_enable(self):
+            for column in columns:
+                column.value = True
+
+        buttons = {
+            "Ok": action_submit,
+            "Check All": action_enable,
+            "Uncheck All": action_disable,
+            "Cancel": self.action_cancel,
+        }
 
         v = Vertical(*columns)
-        v.styles.height = len(columns)
-        c = self.mount_cmd_input_and_focus(
-            v, "Select columns to display", ok_callback=action_submit
+        v.styles.height = len(columns) * 3
+        c = self.mount_and_focus(
+            v,
+            "Select columns to display",
+            buttons=buttons,
         )
-        c.styles.height = len(columns) + 7
+        c.styles.height = len(columns) * 3 + 8
         columns[0].focus()
 
     def action_filter(self):
@@ -350,23 +407,35 @@ class FsdbView(App):
 
         self.run_command_with_arguments("pdbroweval", "pdbroweval expr: ")
 
-    def save_current(self, button):
-        path = str(self.save_info.value)
-        os.rename(self.input_files[-1].name, path)
-        self.loader = FsdbLoader(path)
-        self.input_files[-1] = self.loader
-        self.ourtitle.update(path)
-
     def action_save(self):
         "saves the current contents to a new file"
+
+        saved_self = self
+
+        def save_current(button=None):
+            "renames the current file, or copies it if renaming isn't possible"
+            new_path = str(saved_self.save_info.value)
+
+            # try to rename it (ie, just move it)
+            try:
+                os.rename(saved_self.input_files[-1].name, new_path)
+            except Exception:
+                # otherwise copy it
+                copyfile(saved_self.input_files[-1].name, new_path)
+
+            saved_self.loader = FsdbLoader(new_path)
+            saved_self.input_files[-1] = saved_self.loader
+            saved_self.ourtitle.update(new_path)
+            saved_self.close_current_screen()
 
         if len(self.input_files) == 1:
             self.error("Cannot rename the unmodified original file")
             return
 
         self.save_info = Input()
-        self.mount_cmd_input_and_focus(
-            self.save_info, "Save data to file:", ok_callback=self.save_current
+        self.save_info.action_submit = save_current
+        self.mount_and_focus(
+            self.save_info, "Save data to file:", ok_callback=save_current
         )
 
     def action_remove_column(self):
@@ -380,28 +449,34 @@ class FsdbView(App):
         # TODO: allow passing of exact arguments in a list
         self.run_pipe(["dbcol"] + new_columns)
 
-    def run_input_enter(self):
-        self.run_entered_command(self.input_widget)
-        self.action_cancel()
-
-    def run_entered_command(self, input_widget):
-        self.run_pipe(self.input_widget.value)
-
     def action_pipe(self):
         "prompt for a command to run"
 
+        saved_self = self
+
+        def run_entered_full_command(input_widget=None):
+            if self.run_pipe(saved_self.input_widget.value):
+                saved_self.close_current_screen()
+
         self.input_widget = Input()
-        self.input_widget.action_submit = self.run_input_enter
-        self.mount_cmd_input_and_focus(
+        self.input_widget.action_submit = run_entered_full_command
+
+        self.mount_and_focus(
             self.input_widget,
             "Pipe date through a command: ",
-            ok_callback=self.run_entered_command,
+            ok_callback=run_entered_full_command,
         )
 
-    def run_pipe(self, command_parts="dbcolcreate foo"):
+    def run_pipe(self, command_parts="dbcolcreate foo") -> bool:
         "Runs a new command on the data, and re-displays the output file"
 
-        self.loader = ProcessLoader(command_parts, self.loader.name)
+        try:
+            self.loader = ProcessLoader(command_parts, self.loader.name)
+        except Exception as e:
+            self.debug("displaying error")
+            self.error(f"process failed:\n\n {e}")
+            self.debug("ending displaying")
+            return False
 
         # save the new temporary file name
         self.input_files.append(self.loader)
@@ -409,12 +484,14 @@ class FsdbView(App):
         # load it all up
         self.reload_data()
 
+        return True
+
     def action_show_debug_log(self):
         self.debug("showing debug log")
         self.debug_log_ui = TextLog(id="debug_log")
         for line in self.debug_log:
             self.debug_log_ui.write(line)
-        self.mount_cmd_input_and_focus(
+        self.mount_and_focus(
             self.debug_log_ui, class_name="text_dialog", buttons=["Close"]
         )
 
@@ -422,18 +499,19 @@ class FsdbView(App):
         "show's the command history that created the file"
 
         self.debug("showing history")
-        self.history_log = TextLog(id="history")
+        self.history_log = ""
 
         if self.loader.commands is None:
             # this means pyfsdb couldn't get them
-            self.history_log.write("[HISTORY UNAVAILABLE]")
+            self.history_log = "[HISTORY UNAVAILABLE]"
         else:
-            for command in self.fsh.commands:
-                self.history_log.write(command)
+            for n, command in enumerate(self.loader.fsh.commands):
+                self.history_log += f"{command}\n"
+                if n >= 20:
+                    self.history_log += "\n[HISTORY TRUNCATED]"
+                    break
 
-        self.mount_cmd_input_and_focus(
-            self.history_log, class_name="text_dialog", buttons=["Close"]
-        )
+        self.error(self.history_log, prompt="FSDB History")
 
 
 def main():

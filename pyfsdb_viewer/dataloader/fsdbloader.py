@@ -5,6 +5,7 @@ from . import DataLoader
 
 class FsdbLoader(DataLoader):
     "loads data from an existing FSDB file"
+
     def __init__(self, input_file):
         super().__init__()
 
@@ -23,6 +24,10 @@ class FsdbLoader(DataLoader):
         except Exception:
             return None
 
+    @property
+    def column_names(self):
+        return self.fsh.column_names
+
     def load_data(self) -> None:
         self.rows = []
 
@@ -34,9 +39,6 @@ class FsdbLoader(DataLoader):
                 break
         current_rows.extend(more_rows)
         return more_rows
-
-    def column_names(self):
-        return self.fsh.column_names
 
     def __iter__(self):
         """Returns an iterator object for looping over from the current file."""

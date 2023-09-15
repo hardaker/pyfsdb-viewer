@@ -77,3 +77,8 @@ Screen {
 .entry_button {
     margin-right: 1;
 }
+
+.column-select {
+    padding-top: 0;
+    padding-bottom: 0;
+}
