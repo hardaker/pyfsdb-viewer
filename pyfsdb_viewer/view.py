@@ -12,7 +12,7 @@ from textual.widgets import (
     Header,
     Label,
     Footer,
-    TextLog,
+    RichLog,
     Input,
     Checkbox,
 )
@@ -271,7 +271,7 @@ class FsdbView(App):
         self.reload_data()
 
     def action_help(self, event=None):
-        tl = TextLog()
+        tl = RichLog()
         tl.write("ESC:  exit a dialog box")
         for n, binding in enumerate(self.KEYS):
             if isinstance(binding, tuple):
@@ -488,7 +488,7 @@ class FsdbView(App):
 
     def action_show_debug_log(self):
         self.debug("showing debug log")
-        self.debug_log_ui = TextLog(id="debug_log")
+        self.debug_log_ui = RichLog(id="debug_log")
         for line in self.debug_log:
             self.debug_log_ui.write(line)
         self.mount_and_focus(
