@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyfsdb-viewer",
-    version="0.7.1",
+    version="0.7.2",
     author="Wes Hardaker",
     author_email="opensource@hardakers.net",
     description="A pyfsdb and textual based viewer",
@@ -28,7 +28,7 @@ setuptools.setup(
     tests_require=["nose"],
     install_requires=[
         "pyfsdb>=2.3.4",
-        "textual>=0.26.0",
+        "textual>=0.32.0",
     ],
     package_data={"pyfsdb_viewer": ["pyfsdb_viewer.css"]},
 )
